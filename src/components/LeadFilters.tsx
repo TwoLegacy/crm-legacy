@@ -17,6 +17,7 @@ export interface FilterState {
   dateTo: string
   tipoHospedagem: string
   origem: string
+  fonte: string
 }
 
 const TIPOS_HOSPEDAGEM = [
@@ -31,6 +32,7 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [tipoHospedagem, setTipoHospedagem] = useState('')
   const [origem, setOrigem] = useState('')
+  const [fonte, setFonte] = useState('')
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const calendarRef = useRef<HTMLDivElement>(null)
 
@@ -52,7 +54,8 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
       dateFrom: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
       dateTo: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
       tipoHospedagem,
-      origem
+      origem,
+      fonte
     })
   }
 
@@ -63,7 +66,8 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
       dateFrom: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
       dateTo: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
       tipoHospedagem: value,
-      origem
+      origem,
+      fonte
     })
   }
 
@@ -74,7 +78,8 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
       dateFrom: range?.from ? format(range.from, 'yyyy-MM-dd') : '',
       dateTo: range?.to ? format(range.to, 'yyyy-MM-dd') : '',
       tipoHospedagem,
-      origem
+      origem,
+      fonte
     })
   }
 
@@ -86,7 +91,21 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
       dateFrom: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
       dateTo: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
       tipoHospedagem,
-      origem: newOrigem
+      origem: newOrigem,
+      fonte
+    })
+  }
+
+  const handleFonteChange = (value: string) => {
+    const newFonte = fonte === value ? '' : value
+    setFonte(newFonte)
+    onFilterChange({ 
+      searchTerm, 
+      dateFrom: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
+      dateTo: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
+      tipoHospedagem,
+      origem,
+      fonte: newFonte
     })
   }
 
@@ -95,10 +114,11 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
     setDateRange(undefined)
     setTipoHospedagem('')
     setOrigem('')
-    onFilterChange({ searchTerm: '', dateFrom: '', dateTo: '', tipoHospedagem: '', origem: '' })
+    setFonte('')
+    onFilterChange({ searchTerm: '', dateFrom: '', dateTo: '', tipoHospedagem: '', origem: '', fonte: '' })
   }
 
-  const hasActiveFilters = searchTerm || dateRange?.from || dateRange?.to || tipoHospedagem || origem
+  const hasActiveFilters = searchTerm || dateRange?.from || dateRange?.to || tipoHospedagem || origem || fonte
 
   const getDateLabel = () => {
     if (!dateRange?.from) return 'Data'
@@ -164,6 +184,22 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
             <span className="hidden md:inline">PT</span>
           </button>
         </div>
+
+        {/* Filtro de Fonte (Site) */}
+        <button
+          onClick={() => handleFonteChange('site')}
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            fonte === 'site'
+              ? 'bg-orange-500 text-white ring-2 ring-orange-300'
+              : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+          }`}
+          title="Filtrar leads do Site"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+          </svg>
+          <span className="hidden md:inline">Site</span>
+        </button>
 
         {/* Botão de data com calendário */}
         <div className="relative flex-1 md:flex-none" ref={calendarRef}>
@@ -244,7 +280,7 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
                 <button
                   onClick={() => {
                     setDateRange(undefined)
-                    onFilterChange({ searchTerm, dateFrom: '', dateTo: '', tipoHospedagem, origem })
+                    onFilterChange({ searchTerm, dateFrom: '', dateTo: '', tipoHospedagem, origem, fonte })
                   }}
                   className="flex-1 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 >
@@ -280,7 +316,7 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
 }
 
 // Função helper para filtrar leads
-export function filterLeads<T extends { nome: string; created_at: string; tipo_hospedagem?: string | null; origem?: string | null }>(
+export function filterLeads<T extends { nome: string; created_at: string; tipo_hospedagem?: string | null; origem?: string | null; fonte?: string | null }>(
   leads: T[],
   filters: FilterState
 ): T[] {
@@ -303,6 +339,13 @@ export function filterLeads<T extends { nome: string; created_at: string; tipo_h
     // Filtro por origem (país)
     if (filters.origem) {
       if (lead.origem?.toLowerCase() !== filters.origem.toLowerCase()) {
+        return false
+      }
+    }
+
+    // Filtro por fonte (site/geral/comunidade)
+    if (filters.fonte) {
+      if (lead.fonte?.toLowerCase() !== filters.fonte.toLowerCase()) {
         return false
       }
     }

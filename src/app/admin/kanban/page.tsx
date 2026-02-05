@@ -35,7 +35,7 @@ export default function AdminKanbanPage() {
   
   // ... rest of state ...
   const [viewMode, setViewMode] = useState<ViewMode>('nao_atribuidos')
-  const [filters, setFilters] = useState<FilterState>({ searchTerm: '', dateFrom: '', dateTo: '', tipoHospedagem: '', origem: '' })
+  const [filters, setFilters] = useState<FilterState>({ searchTerm: '', dateFrom: '', dateTo: '', tipoHospedagem: '', origem: '', fonte: '' })
   const [assignModalOpen, setAssignModalOpen] = useState(false)
   const [selectedLeadForAssign, setSelectedLeadForAssign] = useState<Lead | null>(null)
   const [actionsModalOpen, setActionsModalOpen] = useState(false)

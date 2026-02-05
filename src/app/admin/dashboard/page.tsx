@@ -85,13 +85,24 @@ export default function AdminDashboardPage() {
     const emAtendimento = leads.filter(l => ['QUALIFICACAO', 'PERTO_REUNIAO'].includes(l.status_sdr || '')).length
     const leadsPerdidos = leads.filter(l => l.status_sdr === 'LEAD_PERDIDO').length
     
-    // Geral (níveis): conversão = encaminhados para reunião
-    const leadsGeral = leads.filter(l => !isComunidade(l))
+    // Helper para verificar fonte
+    const isSite = (lead: Lead) => lead.fonte?.toLowerCase() === 'site'
+    
+    // Geral (níveis, excluindo comunidade e site): conversão = encaminhados para reunião
+    const leadsGeral = leads.filter(l => !isComunidade(l) && !isSite(l))
     const geralTotal = leadsGeral.length
     const geralAtribuidos = leadsGeral.filter(l => l.owner_sdr_id).length
     const geralEncaminhados = leadsGeral.filter(l => l.status_sdr === 'ENCAMINHADO_REUNIAO').length
     const geralPerdidos = leadsGeral.filter(l => l.status_sdr === 'LEAD_PERDIDO').length
     const geralTaxaConversao = geralAtribuidos > 0 ? ((geralEncaminhados / geralAtribuidos) * 100).toFixed(1) : '0'
+    
+    // Site: conversão = encaminhados para reunião
+    const leadsSite = leads.filter(l => isSite(l))
+    const siteTotal = leadsSite.length
+    const siteAtribuidos = leadsSite.filter(l => l.owner_sdr_id).length
+    const siteEncaminhados = leadsSite.filter(l => l.status_sdr === 'ENCAMINHADO_REUNIAO').length
+    const sitePerdidos = leadsSite.filter(l => l.status_sdr === 'LEAD_PERDIDO').length
+    const siteTaxaConversao = siteAtribuidos > 0 ? ((siteEncaminhados / siteAtribuidos) * 100).toFixed(1) : '0'
     
     // Comunidade: conversão = vendidos
     const leadsComunidade = leads.filter(l => isComunidade(l))
@@ -114,6 +125,12 @@ export default function AdminDashboardPage() {
       geralEncaminhados,
       geralPerdidos,
       geralTaxaConversao,
+      // Site
+      siteTotal,
+      siteAtribuidos,
+      siteEncaminhados,
+      sitePerdidos,
+      siteTaxaConversao,
       // Comunidade
       comunidadeTotal,
       comunidadeAtribuidos,
@@ -265,8 +282,8 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Cards de Conversão (Geral vs Comunidade) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Cards de Conversão (Geral vs Site vs Comunidade) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Card Geral */}
           <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-xl shadow-sm p-4">
             <div className="flex items-center justify-between mb-2">
@@ -281,6 +298,29 @@ export default function AdminDashboardPage() {
               <div className="text-right">
                 <p className="text-white/70 text-xs">Taxa Conversão</p>
                 <p className="text-3xl font-bold text-white">{metrics.geralTaxaConversao}%</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Site */}
+          <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-sm p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-white/80 uppercase tracking-wide font-semibold flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+                Leads do Site
+              </span>
+              <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">{metrics.siteTotal} leads</span>
+            </div>
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-white/70 text-xs">Encam. Reunião</p>
+                <p className="text-2xl font-bold text-white">{metrics.siteEncaminhados}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-white/70 text-xs">Taxa Conversão</p>
+                <p className="text-3xl font-bold text-white">{metrics.siteTaxaConversao}%</p>
               </div>
             </div>
           </div>

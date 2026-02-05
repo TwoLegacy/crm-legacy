@@ -27,13 +27,17 @@ export interface Lead {
   qtd_quartos_hospedagens: string | null
   owner_sdr_id: string | null
   status_sdr: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | null
-  fonte: 'geral' | 'comunidade' | null
+  fonte: 'geral' | 'comunidade' | 'site' | null
   origem: string | null
   // Campos específicos de comunidade
   maior_desafio: string | null
   ja_tentou_de_tudo: string | null
   melhorar_primeiro: string | null
   falta_destravar: string | null
+  // Campos específicos do site
+  email: string | null
+  nome_hospedagem: string | null
+  investimento_mkt: string | null
   created_at: string
   updated_at: string
 }

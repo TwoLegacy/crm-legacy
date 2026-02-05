@@ -21,7 +21,7 @@ export default function SdrKanbanPage() {
   const [error, setError] = useState<string | null>(null)
   
   // Filtros
-  const [filters, setFilters] = useState<FilterState>({ searchTerm: '', dateFrom: '', dateTo: '', tipoHospedagem: '', origem: '' })
+  const [filters, setFilters] = useState<FilterState>({ searchTerm: '', dateFrom: '', dateTo: '', tipoHospedagem: '', origem: '', fonte: '' })
 
   // Inicializa selectedSdrId com o próprio ID se não for admin (ou se for, pode ser null ou o próprio)
   useEffect(() => {
