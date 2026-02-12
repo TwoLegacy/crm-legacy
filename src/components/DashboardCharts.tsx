@@ -60,7 +60,7 @@ export function LeadsPerSdrChart({ data }: BarChartProps) {
               aguardando: 'Aguardando',
               emAtendimento: 'Em Atendimento',
               encaminhados: 'Encam. Reunião',
-              vendidos: 'Vendidos (Comun.)'
+              vendidos: 'Vendidos (Lead E)'
             }
             return [value, labels[name] || name]
           }}
@@ -71,7 +71,7 @@ export function LeadsPerSdrChart({ data }: BarChartProps) {
               aguardando: 'Aguardando',
               emAtendimento: 'Em Atendimento',
               encaminhados: 'Encam. Reunião',
-              vendidos: 'Vendidos (Comun.)'
+              vendidos: 'Vendidos (Lead E)'
             }
             return labels[value] || value
           }}

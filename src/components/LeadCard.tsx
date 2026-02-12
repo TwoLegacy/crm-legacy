@@ -61,6 +61,9 @@ export default function LeadCard({
       ? lead.outros_hospedagem 
       : lead.tipo_hospedagem
 
+  // Verifica se é lead da Comunidade
+  const isComunidadeLocal = lead.fonte?.toLowerCase() === 'comunidade' || isComunidade
+
   // Verifica se é lead do Site
   const isSite = lead.fonte?.toLowerCase() === 'site'
 
@@ -80,53 +83,76 @@ export default function LeadCard({
         className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer group"
       >
         {/* Header com nome, qualificação e engrenagem */}
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <h3 className="font-semibold text-gray-900 text-sm leading-tight flex-1 flex items-center gap-2">
-            {lead.nome}
-            {lead.origem?.toLowerCase() === 'brasil' && (
-              <img src="/flags/br.png" alt="Brasil" className="w-5 h-auto rounded-sm border border-gray-100" />
-            )}
-            {lead.origem?.toLowerCase() === 'portugal' && (
-              <img src="/flags/pt.png" alt="Portugal" className="w-5 h-auto rounded-sm border border-gray-100" />
-            )}
-          </h3>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {/* Engrenagem para gerenciar (Admin com lead atribuído) */}
-            {onGerenciar && isAdmin && lead.owner_sdr_id && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onGerenciar(lead); }}
-                className="p-1.5 text-gray-400 hover:text-[#8B0000] hover:bg-gray-100 rounded-lg transition-all"
-                title="Gerenciar lead"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
-            )}
-            {/* Lixeira para deletar (Admin apenas) */}
-            {onDeletar && isAdmin && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setDeletarModalOpen(true); }}
-                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                title="Deletar lead"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            )}
-            {/* Badge de fonte SITE */}
+        <div className="flex flex-col gap-2 mb-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-gray-900 text-sm leading-tight break-words flex items-center gap-2">
+                {lead.nome}
+                {lead.origem?.toLowerCase() === 'brasil' && (
+                  <img src="/flags/br.png" alt="Brasil" className="w-5 h-auto rounded-sm border border-gray-100 flex-shrink-0" />
+                )}
+                {lead.origem?.toLowerCase() === 'portugal' && (
+                  <img src="/flags/pt.png" alt="Portugal" className="w-5 h-auto rounded-sm border border-gray-100 flex-shrink-0" />
+                )}
+              </h3>
+            </div>
+            
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Engrenagem para gerenciar (Admin com lead atribuído) */}
+              {onGerenciar && isAdmin && lead.owner_sdr_id && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onGerenciar(lead); }}
+                  className="p-1 text-gray-400 hover:text-[#8B0000] hover:bg-gray-100 rounded-lg transition-all"
+                  title="Gerenciar lead"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+              )}
+              {/* Lixeira para deletar (Admin apenas) */}
+              {onDeletar && isAdmin && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDeletarModalOpen(true); }}
+                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                  title="Deletar lead"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
             {isSite && (
-              <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-orange-500 text-white flex items-center gap-1">
+              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-orange-500 text-white flex items-center gap-1">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                 </svg>
                 SITE
               </span>
             )}
+            {lead.fonte?.toLowerCase() === 'vsl' && (
+              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-600 text-white flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                VSL
+              </span>
+            )}
+            {lead.fonte?.toLowerCase() === 'quiz' && (
+              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-500 text-white flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                QUIZ
+              </span>
+            )}
             <span 
-              className="px-2 py-0.5 text-xs font-semibold rounded-full text-white"
+              className="px-2 py-0.5 text-[10px] font-bold rounded-full text-white"
               style={{ backgroundColor: corColuna }}
             >
               {qualificacaoDisplay}
@@ -195,7 +221,7 @@ export default function LeadCard({
           )}
 
           {/* Campos específicos de comunidade */}
-          {isComunidade && lead.maior_desafio && (
+          {isComunidadeLocal && lead.maior_desafio && (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-sky-100 flex items-center justify-center flex-shrink-0">
                 <svg className="w-2.5 h-2.5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -206,7 +232,7 @@ export default function LeadCard({
             </div>
           )}
 
-          {isComunidade && lead.falta_destravar && (
+          {isComunidadeLocal && lead.falta_destravar && (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
                 <svg className="w-2.5 h-2.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,7 +244,7 @@ export default function LeadCard({
           )}
 
           {/* Faturamento só para leads gerais */}
-          {!isComunidade && lead.faturamento_medio && (
+          {!isComunidadeLocal && lead.faturamento_medio && (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
                 <svg className="w-2.5 h-2.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,7 +256,7 @@ export default function LeadCard({
           )}
 
           {/* Instagram ou Website - só para leads gerais */}
-          {!isComunidade && lead.instagram && (
+          {!isComunidadeLocal && lead.instagram && (
             <div className="flex items-center gap-2">
               {instagramIsWebsite ? (
                 <>
@@ -272,6 +298,17 @@ export default function LeadCard({
             </div>
           )}
 
+          {lead.fonte?.toLowerCase() === 'vsl' && lead.valor_diaria && (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                <svg className="w-2.5 h-2.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span className="text-xs truncate text-blue-700 font-medium">Diária: R$ {lead.valor_diaria}</span>
+            </div>
+          )}
+
           {/* Botões de ação */}
           {/* Botões de ação */}
           {showActions && (
@@ -296,7 +333,7 @@ export default function LeadCard({
               )}
 
               {/* Navegação via Setas (Novo Fluxo SDR) */}
-              {lead.status_sdr && !isComunidade && lead.status_sdr !== 'VENDEU' && (
+              {lead.status_sdr && !isComunidadeLocal && lead.status_sdr !== 'VENDEU' && (
                 <div className="flex items-center gap-2 w-full">
                   {/* Botão Voltar (Esquerda) */}
                   {lead.status_sdr !== 'MEUS_LEADS' && onVoltar && (
@@ -346,7 +383,7 @@ export default function LeadCard({
               )}
 
               {/* Botões para Kanban Comunidade (Mantidos originais) */}
-              {onVendeu && lead.status_sdr === 'MEUS_LEADS' && isComunidade && (
+              {onVendeu && lead.status_sdr === 'MEUS_LEADS' && isComunidadeLocal && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onVendeu(lead.id); }}
                   className="flex-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 rounded-lg transition-all"
@@ -355,7 +392,7 @@ export default function LeadCard({
                 </button>
               )}
 
-              {onVoltar && lead.status_sdr === 'VENDEU' && isComunidade && (
+              {onVoltar && lead.status_sdr === 'VENDEU' && isComunidadeLocal && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onVoltar(lead.id); }}
                   className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all"
@@ -372,7 +409,7 @@ export default function LeadCard({
         lead={lead}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        isComunidade={isComunidade}
+        isComunidade={isComunidadeLocal}
       />
 
       <ConfirmModal

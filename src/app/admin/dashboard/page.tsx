@@ -26,7 +26,15 @@ const QualificacaoPieChart = dynamic(
 
 // Helper para verificar se um lead é da comunidade
 function isComunidade(lead: Lead): boolean {
-  return lead.fonte?.toLowerCase() === 'comunidade'
+  return lead.fonte?.toLowerCase() === 'comunidade' || lead.fonte?.toLowerCase() === 'lead e'
+}
+
+function isVsl(lead: Lead): boolean {
+  return lead.fonte?.toLowerCase() === 'vsl'
+}
+
+function isSite(lead: Lead): boolean {
+  return lead.fonte?.toLowerCase() === 'site'
 }
 
 export default function AdminDashboardPage() {
@@ -85,16 +93,15 @@ export default function AdminDashboardPage() {
     const emAtendimento = leads.filter(l => ['QUALIFICACAO', 'PERTO_REUNIAO'].includes(l.status_sdr || '')).length
     const leadsPerdidos = leads.filter(l => l.status_sdr === 'LEAD_PERDIDO').length
     
-    // Helper para verificar fonte
-    const isSite = (lead: Lead) => lead.fonte?.toLowerCase() === 'site'
+
     
-    // Geral (níveis, excluindo comunidade e site): conversão = encaminhados para reunião
-    const leadsGeral = leads.filter(l => !isComunidade(l) && !isSite(l))
-    const geralTotal = leadsGeral.length
-    const geralAtribuidos = leadsGeral.filter(l => l.owner_sdr_id).length
-    const geralEncaminhados = leadsGeral.filter(l => l.status_sdr === 'ENCAMINHADO_REUNIAO').length
-    const geralPerdidos = leadsGeral.filter(l => l.status_sdr === 'LEAD_PERDIDO').length
-    const geralTaxaConversao = geralAtribuidos > 0 ? ((geralEncaminhados / geralAtribuidos) * 100).toFixed(1) : '0'
+    // Quiz (Fallback para tudo que não é Site ou VSL): conversão = encaminhados para reunião
+    const leadsQuiz = leads.filter(l => !isSite(l) && !isVsl(l))
+    const quizTotal = leadsQuiz.length
+    const quizAtribuidos = leadsQuiz.filter(l => l.owner_sdr_id).length
+    const quizEncaminhados = leadsQuiz.filter(l => l.status_sdr === 'ENCAMINHADO_REUNIAO').length
+    const quizPerdidos = leadsQuiz.filter(l => l.status_sdr === 'LEAD_PERDIDO').length
+    const quizTaxaConversao = quizAtribuidos > 0 ? ((quizEncaminhados / quizAtribuidos) * 100).toFixed(1) : '0'
     
     // Site: conversão = encaminhados para reunião
     const leadsSite = leads.filter(l => isSite(l))
@@ -103,14 +110,14 @@ export default function AdminDashboardPage() {
     const siteEncaminhados = leadsSite.filter(l => l.status_sdr === 'ENCAMINHADO_REUNIAO').length
     const sitePerdidos = leadsSite.filter(l => l.status_sdr === 'LEAD_PERDIDO').length
     const siteTaxaConversao = siteAtribuidos > 0 ? ((siteEncaminhados / siteAtribuidos) * 100).toFixed(1) : '0'
-    
-    // Comunidade: conversão = vendidos
-    const leadsComunidade = leads.filter(l => isComunidade(l))
-    const comunidadeTotal = leadsComunidade.length
-    const comunidadeAtribuidos = leadsComunidade.filter(l => l.owner_sdr_id).length
-    const comunidadeVendidos = leadsComunidade.filter(l => l.status_sdr === 'VENDEU').length
-    const comunidadePerdidos = leadsComunidade.filter(l => l.status_sdr === 'LEAD_PERDIDO').length
-    const comunidadeTaxaConversao = comunidadeAtribuidos > 0 ? ((comunidadeVendidos / comunidadeAtribuidos) * 100).toFixed(1) : '0'
+
+    // VSL: conversão = encaminhados para reunião
+    const leadsVsl = leads.filter(l => isVsl(l))
+    const vslTotal = leadsVsl.length
+    const vslAtribuidos = leadsVsl.filter(l => l.owner_sdr_id).length
+    const vslEncaminhados = leadsVsl.filter(l => l.status_sdr === 'ENCAMINHADO_REUNIAO').length
+    const vslPerdidos = leadsVsl.filter(l => l.status_sdr === 'LEAD_PERDIDO').length
+    const vslTaxaConversao = vslAtribuidos > 0 ? ((vslEncaminhados / vslAtribuidos) * 100).toFixed(1) : '0'
 
     return {
       total,
@@ -119,24 +126,24 @@ export default function AdminDashboardPage() {
       aguardando,
       emAtendimento,
       leadsPerdidos,
-      // Geral
-      geralTotal,
-      geralAtribuidos,
-      geralEncaminhados,
-      geralPerdidos,
-      geralTaxaConversao,
+      // Quiz
+      quizTotal,
+      quizAtribuidos,
+      quizEncaminhados,
+      quizPerdidos,
+      quizTaxaConversao,
       // Site
       siteTotal,
       siteAtribuidos,
       siteEncaminhados,
       sitePerdidos,
       siteTaxaConversao,
-      // Comunidade
-      comunidadeTotal,
-      comunidadeAtribuidos,
-      comunidadeVendidos,
-      comunidadePerdidos,
-      comunidadeTaxaConversao,
+      // VSL
+      vslTotal,
+      vslAtribuidos,
+      vslEncaminhados,
+      vslPerdidos,
+      vslTaxaConversao,
     }
   }, [leads])
 
@@ -147,14 +154,16 @@ export default function AdminDashboardPage() {
       total: number
       aguardando: number
       emAtendimento: number
+      leadsPerdidos: number
       qualificacao: number
       pertoReuniao: number
-      encaminhados: number
-      vendidosComunidade: number
-      leadsPerdidos: number
-      // Separação para cálculos
-      totalGeral: number
-      totalComunidade: number
+      // Contadores por fonte
+      totalQuiz: number
+      totalSite: number
+      totalVsl: number
+      encaminhadosQuiz: number
+      encaminhadosSite: number
+      encaminhadosVsl: number
     }>()
     
     sdrs.forEach(sdr => {
@@ -163,14 +172,15 @@ export default function AdminDashboardPage() {
         total: 0,
         aguardando: 0,
         emAtendimento: 0,
-        encaminhados: 0,
-        vendidosComunidade: 0,
-        leadsPerdidos: 0,
-        totalGeral: 0,
-        totalComunidade: 0,
-        // Novos contadores
+        totalQuiz: 0,
+        totalSite: 0,
+        totalVsl: 0,
+        encaminhadosQuiz: 0,
+        encaminhadosSite: 0,
+        encaminhadosVsl: 0,
         qualificacao: 0,
-        pertoReuniao: 0
+        pertoReuniao: 0,
+        leadsPerdidos: 0
       })
     })
 
@@ -182,22 +192,21 @@ export default function AdminDashboardPage() {
         // Contador de perdidos (ambos os tipos)
         if (lead.status_sdr === 'LEAD_PERDIDO') sdr.leadsPerdidos++
         
-        if (isComunidade(lead)) {
-          sdr.totalComunidade++
-          if (lead.status_sdr === 'MEUS_LEADS') sdr.aguardando++
-          // Mapeia novos status para "Atendimento" (ou cria colunas separadas se preferir, aqui somando para manter compatibilidade visual)
-          if (['QUALIFICACAO', 'PERTO_REUNIAO'].includes(lead.status_sdr || '')) sdr.emAtendimento++
-          if (lead.status_sdr === 'VENDEU') sdr.vendidosComunidade++
+        if (isSite(lead)) {
+          sdr.totalSite++
+          if (lead.status_sdr === 'ENCAMINHADO_REUNIAO') sdr.encaminhadosSite++
+        } else if (isVsl(lead)) {
+          sdr.totalVsl++
+          if (lead.status_sdr === 'ENCAMINHADO_REUNIAO') sdr.encaminhadosVsl++
         } else {
-          sdr.totalGeral++
-          if (lead.status_sdr === 'MEUS_LEADS') sdr.aguardando++
-          if (lead.status_sdr === 'QUALIFICACAO') sdr.qualificacao++
-          if (lead.status_sdr === 'PERTO_REUNIAO') sdr.pertoReuniao++
-          // Soma ambos para "emAtendimento" no gráfico antigo se necessário, ou exibiremos separado no tooltip
-          if (['QUALIFICACAO', 'PERTO_REUNIAO'].includes(lead.status_sdr || '')) sdr.emAtendimento++
-          
-          if (lead.status_sdr === 'ENCAMINHADO_REUNIAO') sdr.encaminhados++
+          sdr.totalQuiz++
+          if (lead.status_sdr === 'ENCAMINHADO_REUNIAO') sdr.encaminhadosQuiz++
         }
+
+        if (lead.status_sdr === 'MEUS_LEADS') sdr.aguardando++
+        if (['QUALIFICACAO', 'PERTO_REUNIAO'].includes(lead.status_sdr || '')) sdr.emAtendimento++
+        if (lead.status_sdr === 'QUALIFICACAO') sdr.qualificacao++
+        if (lead.status_sdr === 'PERTO_REUNIAO') sdr.pertoReuniao++
       }
     })
 
@@ -209,19 +218,18 @@ export default function AdminDashboardPage() {
     { name: 'Não Atribuídos', value: metrics.naoAtribuidos, color: '#9ca3af' },
     { name: 'Aguardando', value: metrics.aguardando, color: '#64748b' },
     { name: 'Em Qualificação', value: metrics.emAtendimento, color: '#3b82f6' },
-    { name: 'Encam. Reunião', value: metrics.geralEncaminhados, color: '#f59e0b' },
-    { name: 'Vendidos (Comun.)', value: metrics.comunidadeVendidos, color: '#10b981' },
+    { name: 'Encam. Reunião', value: metrics.quizEncaminhados + metrics.siteEncaminhados + metrics.vslEncaminhados, color: '#f59e0b' },
     { name: 'Lead Perdido', value: metrics.leadsPerdidos, color: '#dc2626' },
   ].filter(d => d.value > 0), [metrics])
 
   // Dados para gráfico de pizza - Qualificação
   const qualificacaoData = useMemo(() => {
     const counts: Record<ColunaGlobal, number> = {
-      'Nível 1': 0,
-      'Nível 2': 0,
-      'Nível 3': 0,
-      'Nível 4': 0,
-      'Comunidade': 0,
+      'Lead D': 0,
+      'Lead C': 0,
+      'Lead B': 0,
+      'Lead A': 0,
+      'Lead E': 0,
     }
 
     leads.forEach(lead => {
@@ -269,8 +277,8 @@ export default function AdminDashboardPage() {
             <p className="text-2xl font-bold text-blue-600 mt-1">{metrics.atribuidos}</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Aguardando</p>
-            <p className="text-2xl font-bold text-gray-500 mt-1">{metrics.aguardando}</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Enc. Reunião</p>
+            <p className="text-2xl font-bold text-amber-600 mt-1">{metrics.quizEncaminhados + metrics.siteEncaminhados + metrics.vslEncaminhados}</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <p className="text-xs text-gray-500 uppercase tracking-wide">Em Qualificação</p>
@@ -282,22 +290,22 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Cards de Conversão (Geral vs Site vs Comunidade) */}
+        {/* Cards de Conversão (Quiz vs Site vs VSL) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* Card Geral */}
-          <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-xl shadow-sm p-4">
+          {/* Card Quiz */}
+          <div className="bg-gradient-to-r from-slate-500 to-slate-600 rounded-xl shadow-sm p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-white/80 uppercase tracking-wide font-semibold">Leads Gerais (Níveis)</span>
-              <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">{metrics.geralTotal} leads</span>
+              <span className="text-xs text-white/80 uppercase tracking-wide font-semibold">Leads Quiz (Níveis)</span>
+              <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">{metrics.quizTotal} leads</span>
             </div>
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-white/70 text-xs">Encam. Reunião</p>
-                <p className="text-2xl font-bold text-white">{metrics.geralEncaminhados}</p>
+                <p className="text-2xl font-bold text-white">{metrics.quizEncaminhados}</p>
               </div>
               <div className="text-right">
                 <p className="text-white/70 text-xs">Taxa Conversão</p>
-                <p className="text-3xl font-bold text-white">{metrics.geralTaxaConversao}%</p>
+                <p className="text-3xl font-bold text-white">{metrics.quizTaxaConversao}%</p>
               </div>
             </div>
           </div>
@@ -311,37 +319,44 @@ export default function AdminDashboardPage() {
                 </svg>
                 Leads do Site
               </span>
-              <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">{metrics.siteTotal} leads</span>
+              <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">{metrics.siteTotal}</span>
             </div>
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-white/70 text-xs">Encam. Reunião</p>
-                <p className="text-2xl font-bold text-white">{metrics.siteEncaminhados}</p>
+                <p className="text-white/70 text-xs text-[10px]">Encam. Reunião</p>
+                <p className="text-xl font-bold text-white">{metrics.siteEncaminhados}</p>
               </div>
               <div className="text-right">
-                <p className="text-white/70 text-xs">Taxa Conversão</p>
-                <p className="text-3xl font-bold text-white">{metrics.siteTaxaConversao}%</p>
+                <p className="text-white/70 text-xs text-[10px]">Taxa Conversão</p>
+                <p className="text-2xl font-bold text-white">{metrics.siteTaxaConversao}%</p>
               </div>
             </div>
           </div>
 
-          {/* Card Comunidade */}
-          <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl shadow-sm p-4">
+          {/* Card VSL */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-sm p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-white/80 uppercase tracking-wide font-semibold">Leads Comunidade</span>
-              <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">{metrics.comunidadeTotal} leads</span>
+              <span className="text-xs text-white/80 uppercase tracking-wide font-semibold flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Leads VSL
+              </span>
+              <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">{metrics.vslTotal}</span>
             </div>
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-white/70 text-xs">Vendidos</p>
-                <p className="text-2xl font-bold text-white">{metrics.comunidadeVendidos}</p>
+                <p className="text-white/70 text-xs text-[10px]">Encam. Reunião</p>
+                <p className="text-xl font-bold text-white">{metrics.vslEncaminhados}</p>
               </div>
               <div className="text-right">
-                <p className="text-white/70 text-xs">Taxa Conversão</p>
-                <p className="text-3xl font-bold text-white">{metrics.comunidadeTaxaConversao}%</p>
+                <p className="text-white/70 text-xs text-[10px]">Taxa Conversão</p>
+                <p className="text-2xl font-bold text-white">{metrics.vslTaxaConversao}%</p>
               </div>
             </div>
           </div>
+
+
         </div>
 
         {/* Gráficos */}
@@ -354,9 +369,9 @@ export default function AdminDashboardPage() {
                 <LeadsPerSdrChart data={leadsPerSdr.map(s => ({
                   name: s.name,
                   aguardando: s.aguardando,
-                  emAtendimento: s.emAtendimento, // Soma de Qualif + Perto
-                  encaminhados: s.encaminhados,
-                  vendidos: s.vendidosComunidade,
+                  emAtendimento: s.emAtendimento,
+                  encaminhados: s.encaminhadosQuiz + s.encaminhadosSite + s.encaminhadosVsl,
+                  vendidos: 0, // Unificado em encaminhados para os novos SDR flows
                   total: s.total
                 }))} />
               ) : (
@@ -410,19 +425,21 @@ export default function AdminDashboardPage() {
                     <th className="text-center py-3 px-2 font-semibold text-gray-500 text-xs">Aguar.</th>
                     <th className="text-center py-3 px-2 font-semibold text-blue-600 text-xs">Atend.</th>
                     <th className="text-center py-3 px-2 font-semibold text-amber-600 text-xs">Enc. Reunião</th>
-                    <th className="text-center py-3 px-2 font-semibold text-emerald-600 text-xs">Vend. Comun.</th>
                     <th className="text-center py-3 px-2 font-semibold text-red-600 text-xs">Perdidos</th>
-                    <th className="text-center py-3 px-2 font-semibold text-amber-600 text-xs">Taxa Geral</th>
-                    <th className="text-center py-3 px-2 font-semibold text-emerald-600 text-xs">Taxa Comun.</th>
+                    <th className="text-center py-3 px-2 font-semibold text-slate-600 text-xs">Taxa Quiz</th>
+                    <th className="text-center py-3 px-2 font-semibold text-orange-600 text-xs text-[10px]">Taxa Site</th>
+                    <th className="text-center py-3 px-2 font-semibold text-blue-600 text-xs text-[10px]">Taxa VSL</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-100">
                   {leadsPerSdr.map((sdr, index) => {
-                    const taxaGeral = sdr.totalGeral > 0 ? ((sdr.encaminhados / sdr.totalGeral) * 100).toFixed(0) : '-'
-                    const taxaComunidade = sdr.totalComunidade > 0 ? ((sdr.vendidosComunidade / sdr.totalComunidade) * 100).toFixed(0) : '-'
+                    const totalEncaminhados = sdr.encaminhadosQuiz + sdr.encaminhadosSite + sdr.encaminhadosVsl
+                    const taxaQuiz = sdr.totalQuiz > 0 ? ((sdr.encaminhadosQuiz / sdr.totalQuiz) * 100).toFixed(0) : '-'
+                    const taxaSite = sdr.totalSite > 0 ? ((sdr.encaminhadosSite / sdr.totalSite) * 100).toFixed(0) : '-'
+                    const taxaVsl = sdr.totalVsl > 0 ? ((sdr.encaminhadosVsl / sdr.totalVsl) * 100).toFixed(0) : '-'
                     
                     return (
-                      <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-2 font-medium text-gray-900">{sdr.name}</td>
                         <td className="py-3 px-2 text-center text-gray-600">{sdr.total}</td>
                         <td className="py-3 px-2 text-center">
@@ -437,12 +454,7 @@ export default function AdminDashboardPage() {
                         </td>
                         <td className="py-3 px-2 text-center">
                           <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-                            {sdr.encaminhados}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2 text-center">
-                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
-                            {sdr.vendidosComunidade}
+                            {totalEncaminhados}
                           </span>
                         </td>
                         <td className="py-3 px-2 text-center">
@@ -450,11 +462,14 @@ export default function AdminDashboardPage() {
                             {sdr.leadsPerdidos}
                           </span>
                         </td>
-                        <td className="py-3 px-2 text-center font-semibold text-amber-600">
-                          {taxaGeral !== '-' ? `${taxaGeral}%` : '-'}
+                        <td className="py-3 px-2 text-center font-semibold text-slate-600">
+                          {taxaQuiz !== '-' ? `${taxaQuiz}%` : '-'}
                         </td>
-                        <td className="py-3 px-2 text-center font-semibold text-emerald-600">
-                          {taxaComunidade !== '-' ? `${taxaComunidade}%` : '-'}
+                        <td className="py-3 px-2 text-center font-semibold text-orange-600">
+                          {taxaSite !== '-' ? `${taxaSite}%` : '-'}
+                        </td>
+                        <td className="py-3 px-2 text-center font-semibold text-blue-700">
+                          {taxaVsl !== '-' ? `${taxaVsl}%` : '-'}
                         </td>
                       </tr>
                     )

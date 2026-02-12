@@ -35,7 +35,15 @@ export default function AdminKanbanPage() {
   
   // ... rest of state ...
   const [viewMode, setViewMode] = useState<ViewMode>('nao_atribuidos')
-  const [filters, setFilters] = useState<FilterState>({ searchTerm: '', dateFrom: '', dateTo: '', tipoHospedagem: '', origem: '', fonte: '' })
+  const [filters, setFilters] = useState<FilterState>({ 
+    searchTerm: '', 
+    dateFrom: '', 
+    dateTo: '', 
+    tipoHospedagem: '', 
+    origem: '', 
+    fonte: '',
+    classificacao: ''
+  })
   const [assignModalOpen, setAssignModalOpen] = useState(false)
   const [selectedLeadForAssign, setSelectedLeadForAssign] = useState<Lead | null>(null)
   const [actionsModalOpen, setActionsModalOpen] = useState(false)
@@ -187,7 +195,7 @@ export default function AdminKanbanPage() {
 
   const totalLeads = allLeads.length
   const naoAtribuidos = allLeads.filter(l => !l.owner_sdr_id).length
-  const hasActiveFilters = filters.searchTerm || filters.dateFrom || filters.dateTo
+  const hasActiveFilters = filters.searchTerm || filters.dateFrom || filters.dateTo || filters.tipoHospedagem || filters.origem || filters.fonte || filters.classificacao
 
   if (loadingKanban || authLoading) {
     return (

@@ -21,7 +21,15 @@ export default function SdrKanbanPage() {
   const [error, setError] = useState<string | null>(null)
   
   // Filtros
-  const [filters, setFilters] = useState<FilterState>({ searchTerm: '', dateFrom: '', dateTo: '', tipoHospedagem: '', origem: '', fonte: '' })
+  const [filters, setFilters] = useState<FilterState>({ 
+    searchTerm: '', 
+    dateFrom: '', 
+    dateTo: '', 
+    tipoHospedagem: '', 
+    origem: '', 
+    fonte: '', 
+    classificacao: '' 
+  })
 
   // Inicializa selectedSdrId com o próprio ID se não for admin (ou se for, pode ser null ou o próprio)
   useEffect(() => {
@@ -57,10 +65,7 @@ export default function SdrKanbanPage() {
         // Se temos um ID alvo, buscamos os leads
         if (targetSdrId) {
            const leadsPromise = getLeadsBySdr(targetSdrId).then(leadsData => {
-              const leadsGerais = leadsData.filter(l => 
-                !l.fonte || l.fonte.toLowerCase() !== 'comunidade'
-              )
-              setLeads(leadsGerais)
+              setLeads(leadsData)
            })
            promises.push(leadsPromise)
         }
@@ -93,8 +98,7 @@ export default function SdrKanbanPage() {
       // Se der erro, recarrega a lista para garantir consistência
       if (profile) {
         const leadsData = await getLeadsBySdr(profile.id)
-        const leadsGerais = leadsData.filter(l => !l.fonte || l.fonte.toLowerCase() !== 'comunidade')
-        setLeads(leadsGerais)
+        setLeads(leadsData)
       }
     }
   }
@@ -147,8 +151,7 @@ export default function SdrKanbanPage() {
       if (profile) {
         // Recarrega leads
         const leadsData = await getLeadsBySdr(profile.id)
-        const leadsGerais = leadsData.filter(l => !l.fonte || l.fonte.toLowerCase() !== 'comunidade')
-        setLeads(leadsGerais)
+        setLeads(leadsData)
       }
     }
   }
@@ -218,7 +221,7 @@ export default function SdrKanbanPage() {
     )
   }
 
-  const hasActiveFilters = filters.searchTerm || filters.dateFrom || filters.dateTo
+  const hasActiveFilters = filters.searchTerm || filters.dateFrom || filters.dateTo || filters.tipoHospedagem || filters.origem || filters.fonte || filters.classificacao
 
   return (
     <Sidebar>

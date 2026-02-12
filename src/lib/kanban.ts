@@ -5,37 +5,37 @@
 export type Qualificacao = 'RUIM' | 'MEDIO' | 'QUALIFICADO' | 'ULTRA' | 'COMUNIDADE';
 
 export type ColunaGlobal =
-  | 'Nível 1'
-  | 'Nível 2'
-  | 'Nível 3'
-  | 'Nível 4'
-  | 'Comunidade';
+  | 'Lead A'
+  | 'Lead B'
+  | 'Lead C'
+  | 'Lead D'
+  | 'Lead E';
 
 // Mapeamento de qualificação para coluna do Kanban
 export const QUALIFICACAO_PARA_COLUNA: Record<Qualificacao, ColunaGlobal> = {
-  'RUIM': 'Nível 1',
-  'MEDIO': 'Nível 2',
-  'QUALIFICADO': 'Nível 3',
-  'ULTRA': 'Nível 4',
-  'COMUNIDADE': 'Comunidade',
+  'RUIM': 'Lead D',
+  'MEDIO': 'Lead C',
+  'QUALIFICADO': 'Lead B',
+  'ULTRA': 'Lead A',
+  'COMUNIDADE': 'Lead E',
 };
 
 // Ordem das colunas (para renderização)
 export const ORDEM_COLUNAS: ColunaGlobal[] = [
-  'Nível 1',
-  'Nível 2',
-  'Nível 3',
-  'Nível 4',
-  'Comunidade',
+  'Lead E',
+  'Lead D',
+  'Lead C',
+  'Lead B',
+  'Lead A',
 ];
 
 // Cores para cada coluna
 export const CORES_COLUNAS: Record<ColunaGlobal, string> = {
-  'Nível 1': '#dc2626', // red-600
-  'Nível 2': '#f59e0b', // amber-500
-  'Nível 3': '#10b981', // emerald-500
-  'Nível 4': '#8b5cf6', // violet-500
-  'Comunidade': '#0ea5e9', // sky-500
+  'Lead D': '#dc2626', // red-600
+  'Lead C': '#f59e0b', // amber-500
+  'Lead B': '#10b981', // emerald-500
+  'Lead A': '#8b5cf6', // violet-500
+  'Lead E': '#0ea5e9', // sky-500
 };
 
 // =====================================================
@@ -160,11 +160,11 @@ const TIPOS_HOSPEDAGEM_PREMIUM = [
 export function obterQualificacaoEColuna(
   tipoHospedagem: string | null | undefined,
   faturamentoMedio: string | null | undefined,
-  fonte: string | null | undefined = 'geral'
+  fonte: string | null | undefined = 'quiz'
 ): { qualificacao: Qualificacao; coluna: ColunaGlobal } {
   // PRIORIDADE 1: Se fonte é comunidade, vai para coluna Comunidade
   if (fonte && fonte.toLowerCase() === 'comunidade') {
-    return { qualificacao: 'COMUNIDADE', coluna: 'Comunidade' };
+    return { qualificacao: 'COMUNIDADE', coluna: 'Lead E' };
   }
   
   // Normaliza os inputs
@@ -216,7 +216,7 @@ export function obterQualificacaoEColuna(
 
   // Override final de fonte Comunidade (mantém prioridade absoluta)
   if (fonte && fonte.toLowerCase() === 'comunidade') {
-    return { qualificacao: 'COMUNIDADE', coluna: 'Comunidade' };
+    return { qualificacao: 'COMUNIDADE', coluna: 'Lead E' };
   }
   
   const coluna = QUALIFICACAO_PARA_COLUNA[qualificacao];
@@ -241,11 +241,11 @@ export function agruparLeadsPorColuna<T extends { tipo_hospedagem: string | null
   leads: T[]
 ): Record<ColunaGlobal, T[]> {
   const grupos: Record<ColunaGlobal, T[]> = {
-    'Nível 1': [],
-    'Nível 2': [],
-    'Nível 3': [],
-    'Nível 4': [],
-    'Comunidade': [],
+    'Lead D': [],
+    'Lead C': [],
+    'Lead B': [],
+    'Lead A': [],
+    'Lead E': [],
   };
   
   for (const lead of leads) {

@@ -24,11 +24,11 @@ interface UserFormModalProps {
 }
 
 const ALL_QUALIFICACOES: { value: Qualificacao; label: string }[] = [
-  { value: 'RUIM', label: 'Nível 1' },
-  { value: 'MEDIO', label: 'Nível 2' },
-  { value: 'QUALIFICADO', label: 'Nível 3' },
-  { value: 'ULTRA', label: 'Nível 4' },
-  { value: 'COMUNIDADE', label: 'Comunidade' },
+  { value: 'RUIM', label: 'Lead D' },
+  { value: 'MEDIO', label: 'Lead C' },
+  { value: 'QUALIFICADO', label: 'Lead B' },
+  { value: 'ULTRA', label: 'Lead A' },
+  { value: 'COMUNIDADE', label: 'Lead E' },
 ]
 
 export default function UserFormModal({

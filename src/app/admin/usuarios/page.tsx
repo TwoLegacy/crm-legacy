@@ -178,11 +178,11 @@ export default function UsuariosPage() {
   }
 
   const qualificacaoLabels: Record<Qualificacao, string> = {
-    'RUIM': 'Nível 1',
-    'MEDIO': 'Nível 2',
-    'QUALIFICADO': 'Nível 3',
-    'ULTRA': 'Nível 4',
-    'COMUNIDADE': 'Comunidade',
+    'RUIM': 'Lead D',
+    'MEDIO': 'Lead C',
+    'QUALIFICADO': 'Lead B',
+    'ULTRA': 'Lead A',
+    'COMUNIDADE': 'Lead E',
   }
 
   if (loading) {

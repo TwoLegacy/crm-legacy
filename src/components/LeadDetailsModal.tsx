@@ -111,6 +111,14 @@ export default function LeadDetailsModal({
                     SITE
                   </span>
                 )}
+                {lead.fonte?.toLowerCase() === 'vsl' && (
+                  <span className="px-2.5 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded-full flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    VSL
+                  </span>
+                )}
               </div>
               <h2 className="text-xl font-bold text-white">{lead.nome}</h2>
               <p className="text-white/70 text-sm mt-1">
@@ -260,6 +268,14 @@ export default function LeadDetailsModal({
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500">Investimento em marketing</span>
                   <span className="text-sm font-medium text-gray-900">{lead.investimento_mkt}</span>
+                </div>
+              )}
+
+              {/* Valor da diária - leads VSL */}
+              {lead.fonte?.toLowerCase() === 'vsl' && lead.valor_diaria && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Valor da diária</span>
+                  <span className="text-sm font-medium text-gray-900">R$ {lead.valor_diaria}</span>
                 </div>
               )}
             </div>

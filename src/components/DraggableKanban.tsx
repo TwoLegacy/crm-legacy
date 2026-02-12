@@ -37,7 +37,7 @@ export function DraggableKanbanColumn({
   const corColuna = cor || CORES_COLUNAS[titulo as ColunaGlobal] || '#8B0000'
 
   return (
-    <div className="flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 min-w-[340px] max-w-[380px] flex-1 overflow-hidden">
+    <div className="flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 min-w-[420px] max-w-[480px] flex-1 overflow-hidden">
       {/* Header da coluna */}
       <div 
         className="p-4"
