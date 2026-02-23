@@ -136,6 +136,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
           
           if (event === 'SIGNED_OUT') {
+            console.log('[AuthContext] Logout detectado pelo evento SIGNED_OUT')
             setUser(null)
             setProfile(null)
             setLoading(false)

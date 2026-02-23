@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { DraggableKanbanBoard, DraggableKanbanColumn } from '@/components/DraggableKanban'
 import Sidebar from '@/components/Sidebar'
 import LeadFilters, { FilterState, filterLeads } from '@/components/LeadFilters'
+import CreateLeadModal from '@/components/CreateLeadModal'
 
 export default function SdrKanbanPage() {
   const router = useRouter()
@@ -19,6 +20,7 @@ export default function SdrKanbanPage() {
   const [selectedSdrId, setSelectedSdrId] = useState<string | null>(null)
   const [loadingLeads, setLoadingLeads] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   
   // Filtros
   const [filters, setFilters] = useState<FilterState>({ 
@@ -103,6 +105,10 @@ export default function SdrKanbanPage() {
     }
   }
 
+  const handleRemoveFromList = (leadId: number) => {
+    setLeads(prev => prev.filter(l => l.id !== leadId))
+  }
+
   // Ordena Meus Leads por data de atualização (mais recente primeiro)
   // Ordena por data de atualização
   const meusLeads = filteredLeads
@@ -129,6 +135,7 @@ export default function SdrKanbanPage() {
   const totalPertoReuniao = leads.filter(l => l.status_sdr === 'PERTO_REUNIAO').length
   const totalEncaminhados = leads.filter(l => l.status_sdr === 'ENCAMINHADO_REUNIAO').length
   const totalLeadsPerdidos = leads.filter(l => l.status_sdr === 'LEAD_PERDIDO').length
+  const totalNaoRespondeu = leads.filter(l => l.status_sdr === 'NAO_RESPONDEU').length
 
   const handleDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result
@@ -138,7 +145,7 @@ export default function SdrKanbanPage() {
     }
 
     const leadId = parseInt(draggableId)
-    const newStatus = destination.droppableId as 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'LEAD_PERDIDO'
+    const newStatus = destination.droppableId as 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU'
 
     setLeads(prev => prev.map(l => 
       l.id === leadId ? { ...l, status_sdr: newStatus } : l
@@ -231,9 +238,20 @@ export default function SdrKanbanPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-gray-900 mt-8 md:mt-0">Meus Leads</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Arraste os cards para atualizar o status
-              </p>
+              <div className="flex flex-wrap items-center gap-3 mt-1">
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#8B0000] text-white text-sm font-bold rounded-lg hover:bg-[#6B0000] transition-all shadow-md active:scale-95"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Novo Lead
+                </button>
+                <p className="text-sm text-gray-500">
+                  Arraste os cards para atualizar o status
+                </p>
+              </div>
             </div>
             
             {/* Stats Grid - Mobile: Grid 2 cols, Desktop: Flex Row */}
@@ -260,6 +278,11 @@ export default function SdrKanbanPage() {
               <div className="text-center">
                 <p className="text-xl md:text-2xl font-bold text-red-600">{totalLeadsPerdidos}</p>
                 <p className="text-xs text-gray-500">Perdidos</p>
+              </div>
+              <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
+              <div className="text-center">
+                <p className="text-xl md:text-2xl font-bold text-gray-400">{totalNaoRespondeu}</p>
+                <p className="text-xs text-gray-500">Não Respondeu</p>
               </div>
               
               {hasActiveFilters && (
@@ -321,6 +344,7 @@ export default function SdrKanbanPage() {
                 cor="#4b5563"
                 onEncaminhar={handleAdvance}
                 onDevolver={handleDevolver}
+                onDeletar={handleRemoveFromList}
               />
               <DraggableKanbanColumn
                 id="QUALIFICACAO"
@@ -329,6 +353,7 @@ export default function SdrKanbanPage() {
                 cor="#2563eb"
                 onEncaminhar={handleAdvance}
                 onVoltar={handleRetreat}
+                onDeletar={handleRemoveFromList}
               />
               <DraggableKanbanColumn
                 id="PERTO_REUNIAO"
@@ -337,6 +362,7 @@ export default function SdrKanbanPage() {
                 cor="#4f46e5"
                 onEncaminhar={handleAdvance}
                 onVoltar={handleRetreat}
+                onDeletar={handleRemoveFromList}
               />
               <DraggableKanbanColumn
                 id="ENCAMINHADO_REUNIAO"
@@ -344,17 +370,33 @@ export default function SdrKanbanPage() {
                 leads={encaminhados}
                 cor="#10b981"
                 onVoltar={handleRetreat}
+                onDeletar={handleRemoveFromList}
               />
               <DraggableKanbanColumn
                 id="LEAD_PERDIDO"
                 titulo="Lead Perdido"
                 leads={leadsPerdidos}
                 cor="#dc2626"
+                onDeletar={handleRemoveFromList}
+              />
+              <DraggableKanbanColumn
+                id="NAO_RESPONDEU"
+                titulo="Não Respondeu"
+                leads={filteredLeads.filter(l => l.status_sdr === 'NAO_RESPONDEU')}
+                cor="#9ca3af"
+                onDeletar={handleRemoveFromList}
               />
             </DraggableKanbanBoard>
           </div>
         </main>
       </div>
+
+      <CreateLeadModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={(newLead) => setLeads(prev => [newLead, ...prev])}
+        sdrId={profile?.id || ''}
+      />
     </Sidebar>
   )
 }

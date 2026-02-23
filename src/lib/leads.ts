@@ -26,9 +26,11 @@ export interface Lead {
   instagram: string | null
   qtd_quartos_hospedagens: string | null
   owner_sdr_id: string | null
-  status_sdr: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | null
+  status_sdr: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | null
   fonte: 'quiz' | 'comunidade' | 'site' | 'vsl' | null
   origem: string | null
+  observacoes: string | null
+  deleted_at: string | null
   // Campos específicos de comunidade
   maior_desafio: string | null
   ja_tentou_de_tudo: string | null
@@ -292,7 +294,7 @@ export async function deleteLead(leadId: number): Promise<void> {
  */
 export async function updateLeadStatus(
   leadId: number,
-  status: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO'
+  status: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU'
 ): Promise<Lead> {
   const supabase = createClient()
   
@@ -305,6 +307,133 @@ export async function updateLeadStatus(
   
   if (error) {
     console.error('Erro ao atualizar status:', error)
+    throw error
+  }
+  
+  invalidateCache('leads')
+  return data
+}
+
+/**
+ * Atualiza as observações de um lead
+ */
+export async function updateLeadObservacoes(leadId: number, observacoes: string): Promise<Lead> {
+  const supabase = createClient()
+  
+  const { data, error } = await supabase
+    .from('leads')
+    .update({ observacoes })
+    .eq('id', leadId)
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Erro ao atualizar observações:', error)
+    throw error
+  }
+  
+  invalidateCache('leads')
+  return data
+}
+
+/**
+ * Move um lead para a lixeira (soft delete)
+ */
+export async function moveToBin(leadId: number): Promise<void> {
+  const supabase = createClient()
+  
+  const { error: updateError } = await supabase
+    .from('leads')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', leadId)
+
+  if (updateError) {
+    console.error('Erro ao mover para lixeira:', updateError)
+    throw updateError
+  }
+  
+  invalidateCache('leads')
+}
+
+/**
+ * Restaura um lead da lixeira
+ */
+export async function restoreFromBin(leadId: number): Promise<void> {
+  const supabase = createClient()
+  
+  const { error } = await supabase
+    .from('leads')
+    .update({ deleted_at: null })
+    .eq('id', leadId)
+  
+  if (error) {
+    console.error('Erro ao restaurar da lixeira:', error)
+    throw error
+  }
+  
+  invalidateCache('leads')
+}
+
+/**
+ * Busca leads na lixeira
+ */
+export async function getLeadsInBin(): Promise<Lead[]> {
+  const supabase = createClient()
+  
+  const { data, error } = await supabase
+    .from('leads')
+    .select('*')
+    .not('deleted_at', 'is', null)
+    .order('deleted_at', { ascending: false })
+  
+  if (error) {
+    console.error('Erro ao buscar lixeira:', error)
+    throw error
+  }
+  
+  return data || []
+}
+
+/**
+ * Verifica se um lead já existe pelo WhatsApp
+ */
+export async function checkLeadExists(whatsapp: string): Promise<Lead | null> {
+  const supabase = createClient()
+  
+  // Limpa o whatsapp para comparação (apenas números)
+  const numbersOnly = whatsapp.replace(/\D/g, '')
+  
+  const { data, error } = await supabase
+    .from('leads')
+    .select('*')
+    .or(`whatsapp.ilike.%${numbersOnly}%,whatsapp_formatado.ilike.%${numbersOnly}%`)
+    .is('deleted_at', null)
+    .maybeSingle()
+  
+  if (error) {
+    console.error('Erro ao verificar duplicidade:', error)
+    return null
+  }
+  
+  return data
+}
+
+/**
+ * Cria um novo lead manualmente
+ */
+export async function createLead(leadData: Partial<Lead>): Promise<Lead> {
+  const supabase = createClient()
+  
+  const { data, error } = await supabase
+    .from('leads')
+    .insert([leadData])
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Erro ao criar lead [Supabase Error]:', error)
+    // Se o erro for um objeto vazio no console, vamos tentar stringificar detalhes
+    console.error('Detalhes do erro:', JSON.stringify(error, null, 2))
     throw error
   }
   

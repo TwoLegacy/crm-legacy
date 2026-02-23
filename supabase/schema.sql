@@ -26,8 +26,11 @@ CREATE TABLE leads (
   instagram TEXT,
   qtd_quartos_hospedagens TEXT,
   owner_sdr_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  status_sdr TEXT CHECK (status_sdr IS NULL OR status_sdr IN ('MEUS_LEADS', 'EM_ATENDIMENTO', 'ENCAMINHADO_REUNIAO', 'VENDEU')),
+  status_sdr TEXT CHECK (status_sdr IS NULL OR status_sdr IN ('MEUS_LEADS', 'QUALIFICACAO', 'PERTO_REUNIAO', 'ENCAMINHADO_REUNIAO', 'VENDEU', 'LEAD_PERDIDO', 'NAO_RESPONDEU')),
   origem TEXT,
+  fonte TEXT,
+  observacoes TEXT,
+  deleted_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

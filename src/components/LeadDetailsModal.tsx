@@ -1,6 +1,7 @@
 'use client'
 
-import { Lead } from '@/lib/leads'
+import { useState, useEffect } from 'react'
+import { Lead, updateLeadObservacoes } from '@/lib/leads'
 import { obterQualificacaoEColuna, CORES_COLUNAS } from '@/lib/kanban'
 
 interface LeadDetailsModalProps {
@@ -16,7 +17,36 @@ export default function LeadDetailsModal({
   isComunidade = false,
   onClose,
 }: LeadDetailsModalProps) {
+  const [observacoes, setObservacoes] = useState(lead?.observacoes || '')
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
+  useEffect(() => {
+    if (lead) {
+      setObservacoes(lead.observacoes || '')
+      setSaveMessage(null)
+    }
+  }, [lead])
+
   if (!isOpen || !lead) return null
+
+  const handleSaveObservacoes = async () => {
+    if (!lead) return
+    setIsSaving(true)
+    setSaveMessage(null)
+    try {
+      await updateLeadObservacoes(lead.id, observacoes)
+      setSaveMessage({ type: 'success', text: 'Observações salvas!' })
+      // Opcional: recarregar leads no pai se necessário, ou assumir que o usuário verá as mudanças ao reabrir.
+      // Como o Kanban usa o estado de leads, seria bom o pai atualizar. 
+      // Mas para manter simples agora, apenas mostramos o sucesso.
+      setTimeout(() => setSaveMessage(null), 3000)
+    } catch (err) {
+      setSaveMessage({ type: 'error', text: 'Erro ao salvar.' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const { qualificacao, coluna } = obterQualificacaoEColuna(
     lead.tipo_hospedagem,
@@ -138,6 +168,42 @@ export default function LeadDetailsModal({
 
         {/* Conteúdo */}
         <div className="p-5 space-y-5 overflow-y-auto max-h-[60vh]">
+          
+          {/* Campo de Observações / Tarefas */}
+          <section className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
+            <h3 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Observações / Tarefas / Lembretes
+            </h3>
+            <textarea
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              placeholder="Digite aqui anotações importantes sobre este lead..."
+              className="w-full h-24 p-3 bg-white border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none resize-none placeholder-amber-400"
+            />
+            <div className="flex items-center justify-between mt-2">
+              <div className="text-xs">
+                {saveMessage && (
+                  <span className={saveMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}>
+                    {saveMessage.text}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={handleSaveObservacoes}
+                disabled={isSaving || (lead.observacoes || '') === observacoes}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  isSaving || (lead.observacoes || '') === observacoes
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-amber-600 text-white hover:bg-amber-700 shadow-sm'
+                }`}
+              >
+                {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+              </button>
+            </div>
+          </section>
           
           {/* Informações de Contato */}
           <section>

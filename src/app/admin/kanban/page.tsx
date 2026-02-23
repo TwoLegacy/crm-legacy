@@ -18,6 +18,7 @@ import AssignModal from '@/components/AssignModal'
 import LeadActionsModal from '@/components/LeadActionsModal'
 import Sidebar from '@/components/Sidebar'
 import LeadFilters, { FilterState, filterLeads } from '@/components/LeadFilters'
+import CreateLeadModal from '@/components/CreateLeadModal'
 
 type ViewMode = 'todos' | 'nao_atribuidos' | string
 
@@ -48,6 +49,7 @@ export default function AdminKanbanPage() {
   const [selectedLeadForAssign, setSelectedLeadForAssign] = useState<Lead | null>(null)
   const [actionsModalOpen, setActionsModalOpen] = useState(false)
   const [selectedLeadForActions, setSelectedLeadForActions] = useState<Lead | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   const sdrsMap = useMemo(() => {
     const map = new Map<string, Profile>()
@@ -186,9 +188,7 @@ export default function AdminKanbanPage() {
       if (leadToDelete) {
         setAllLeads(prev => [...prev, leadToDelete])
       }
-      // Mostra erro ao usuário via alert para ser mais visível
       const errorMsg = err?.message || err?.code || 'Verifique as permissões de DELETE no Supabase'
-      alert(`Erro ao deletar lead: ${errorMsg}`)
       setError(`Erro ao deletar lead: ${errorMsg}`)
     }
   }
@@ -226,11 +226,22 @@ export default function AdminKanbanPage() {
         {/* Header fixo */}
         <header className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-3">
           <div className="flex items-center justify-between mb-3">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Novos Leads</h1>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Gerencie e distribua os leads para sua equipe
-              </p>
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Novos Leads</h1>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Gerencie e distribua os leads para sua equipe
+                </p>
+              </div>
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#8B0000] text-white text-xs font-bold rounded-lg hover:bg-[#6B0000] transition-all shadow-sm active:scale-95"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Novo Lead
+              </button>
             </div>
             <div className="flex items-center gap-4 bg-gray-50 rounded-xl px-3 py-1.5">
               <div className="text-center">
@@ -399,6 +410,13 @@ export default function AdminKanbanPage() {
           onReassign={handleReassign}
         />
       </div>
+
+      <CreateLeadModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={(newLead) => setAllLeads(prev => [newLead, ...prev])}
+        sdrId={null}
+      />
     </Sidebar>
   )
 }

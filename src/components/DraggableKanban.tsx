@@ -18,6 +18,7 @@ interface DraggableKanbanColumnProps {
   onVoltar?: (leadId: number) => void
   onVendeu?: (leadId: number) => void
   onDevolver?: (leadId: number) => void
+  onDeletar?: (leadId: number) => void
 }
 
 export function DraggableKanbanColumn({
@@ -33,6 +34,7 @@ export function DraggableKanbanColumn({
   onVoltar,
   onVendeu,
   onDevolver,
+  onDeletar,
 }: DraggableKanbanColumnProps) {
   const corColuna = cor || CORES_COLUNAS[titulo as ColunaGlobal] || '#8B0000'
 
@@ -88,6 +90,7 @@ export function DraggableKanbanColumn({
                         onVoltar={onVoltar}
                         onVendeu={onVendeu}
                         onDevolver={onDevolver}
+                        onDeletar={onDeletar}
                       />
                     </div>
                   )}
