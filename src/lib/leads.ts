@@ -41,6 +41,8 @@ export interface Lead {
   nome_hospedagem: string | null
   investimento_mkt: string | null
   valor_diaria: string | null
+  // Flag de lead duplicado via webhook
+  is_duplicado: boolean | null
   created_at: string
   updated_at: string
 }
@@ -100,7 +102,8 @@ export async function getAllLeads(): Promise<Lead[]> {
   const { data, error } = await supabase
     .from('leads')
     .select('*')
-    .order('created_at', { ascending: false })
+    .is('deleted_at', null)
+    .order('updated_at', { ascending: false })
   
   if (error) {
     console.error('Erro ao buscar leads:', error)
@@ -126,7 +129,8 @@ export async function getLeadsBySdr(sdrId: string): Promise<Lead[]> {
     .from('leads')
     .select('*')
     .eq('owner_sdr_id', sdrId)
-    .order('created_at', { ascending: false })
+    .is('deleted_at', null)
+    .order('updated_at', { ascending: false })
   
   if (error) {
     console.error('Erro ao buscar leads do SDR:', error)

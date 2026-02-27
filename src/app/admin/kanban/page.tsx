@@ -43,7 +43,8 @@ export default function AdminKanbanPage() {
     tipoHospedagem: '', 
     origem: '', 
     fonte: '',
-    classificacao: ''
+    classificacao: '',
+    apenasDuplicados: false
   })
   const [assignModalOpen, setAssignModalOpen] = useState(false)
   const [selectedLeadForAssign, setSelectedLeadForAssign] = useState<Lead | null>(null)

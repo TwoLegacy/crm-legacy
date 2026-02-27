@@ -30,7 +30,8 @@ export default function SdrKanbanPage() {
     tipoHospedagem: '', 
     origem: '', 
     fonte: '', 
-    classificacao: '' 
+    classificacao: '',
+    apenasDuplicados: false
   })
 
   // Inicializa selectedSdrId com o próprio ID se não for admin (ou se for, pode ser null ou o próprio)

@@ -20,6 +20,7 @@ export interface FilterState {
   origem: string
   fonte: string
   classificacao: string
+  apenasDuplicados: boolean
 }
 
 const TIPOS_HOSPEDAGEM = [
@@ -36,6 +37,7 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
   const [origem, setOrigem] = useState('')
   const [fonte, setFonte] = useState('')
   const [classificacao, setClassificacao] = useState('')
+  const [apenasDuplicados, setApenasDuplicados] = useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const calendarRef = useRef<HTMLDivElement>(null)
 
@@ -59,7 +61,8 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
       tipoHospedagem,
       origem,
       fonte,
-      classificacao
+      classificacao,
+      apenasDuplicados
     })
   }
 
@@ -72,7 +75,8 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
       tipoHospedagem: value,
       origem,
       fonte,
-      classificacao
+      classificacao,
+      apenasDuplicados
     })
   }
 
@@ -85,7 +89,8 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
       tipoHospedagem,
       origem,
       fonte,
-      classificacao
+      classificacao,
+      apenasDuplicados
     })
   }
 
@@ -99,7 +104,8 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
       tipoHospedagem,
       origem: newOrigem,
       fonte,
-      classificacao
+      classificacao,
+      apenasDuplicados
     })
   }
 
@@ -113,7 +119,8 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
       tipoHospedagem,
       origem,
       fonte: newFonte,
-      classificacao
+      classificacao,
+      apenasDuplicados
     })
   }
 
@@ -127,7 +134,8 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
       tipoHospedagem,
       origem,
       fonte,
-      classificacao: newClassificacao
+      classificacao: newClassificacao,
+      apenasDuplicados
     })
   }
 
@@ -138,10 +146,11 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
     setOrigem('')
     setFonte('')
     setClassificacao('')
-    onFilterChange({ searchTerm: '', dateFrom: '', dateTo: '', tipoHospedagem: '', origem: '', fonte: '', classificacao: '' })
+    setApenasDuplicados(false)
+    onFilterChange({ searchTerm: '', dateFrom: '', dateTo: '', tipoHospedagem: '', origem: '', fonte: '', classificacao: '', apenasDuplicados: false })
   }
 
-  const hasActiveFilters = searchTerm || dateRange?.from || dateRange?.to || tipoHospedagem || origem || fonte || classificacao
+  const hasActiveFilters = searchTerm || dateRange?.from || dateRange?.to || tipoHospedagem || origem || fonte || classificacao || apenasDuplicados
 
   const getDateLabel = () => {
     if (!dateRange?.from) return 'Data'
@@ -250,6 +259,33 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
             >
               QUIZ
             </button>
+            <button
+              onClick={() => {
+                const newValue = !apenasDuplicados;
+                setApenasDuplicados(newValue);
+                onFilterChange({
+                  searchTerm,
+                  dateFrom: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
+                  dateTo: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
+                  tipoHospedagem,
+                  origem,
+                  fonte,
+                  classificacao,
+                  apenasDuplicados: newValue
+                });
+              }}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                apenasDuplicados
+                  ? 'bg-red-100 text-red-700 ring-2 ring-red-300'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              }`}
+              title="Apenas leads duplicados"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              DUPS
+            </button>
           </div>
 
           {/* Filtro de Fonte (Site) */}
@@ -347,7 +383,7 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
                   <button
                     onClick={() => {
                       setDateRange(undefined)
-                      onFilterChange({ searchTerm, dateFrom: '', dateTo: '', tipoHospedagem, origem, fonte, classificacao })
+                      onFilterChange({ searchTerm, dateFrom: '', dateTo: '', tipoHospedagem, origem, fonte, classificacao, apenasDuplicados })
                     }}
                     className="flex-1 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   >
@@ -384,7 +420,7 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
 }
 
 // Função helper para filtrar leads
-export function filterLeads<T extends { nome: string; created_at: string; tipo_hospedagem?: string | null; faturamento_medio?: string | null; origem?: string | null; fonte?: string | null }>(
+export function filterLeads<T extends { nome: string; created_at: string; tipo_hospedagem?: string | null; faturamento_medio?: string | null; origem?: string | null; fonte?: string | null; is_duplicado?: boolean | null }>(
   leads: T[],
   filters: FilterState
 ): T[] {
@@ -438,6 +474,13 @@ export function filterLeads<T extends { nome: string; created_at: string; tipo_h
     if (filters.dateTo) {
       const leadDate = new Date(lead.created_at).toISOString().split('T')[0]
       if (leadDate > filters.dateTo) {
+        return false
+      }
+    }
+
+    // Filtro Apenas Duplicados
+    if (filters.apenasDuplicados) {
+      if (!lead.is_duplicado) {
         return false
       }
     }
