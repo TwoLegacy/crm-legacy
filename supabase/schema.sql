@@ -8,8 +8,9 @@
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('admin', 'sdr')),
+  role TEXT NOT NULL CHECK (role IN ('admin', 'sdr', 'closer')),
   visible_qualifications TEXT[] DEFAULT '{}',
+  link_reuniao TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -26,11 +27,28 @@ CREATE TABLE leads (
   instagram TEXT,
   qtd_quartos_hospedagens TEXT,
   owner_sdr_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  status_sdr TEXT CHECK (status_sdr IS NULL OR status_sdr IN ('MEUS_LEADS', 'QUALIFICACAO', 'PERTO_REUNIAO', 'ENCAMINHADO_REUNIAO', 'VENDEU', 'LEAD_PERDIDO', 'NAO_RESPONDEU')),
+  owner_closer_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  status_sdr TEXT CHECK (status_sdr IS NULL OR status_sdr IN ('MEUS_LEADS', 'QUALIFICACAO', 'PERTO_REUNIAO', 'ENCAMINHADO_REUNIAO', 'VENDEU', 'LEAD_PERDIDO', 'NAO_RESPONDEU', 'NO_SHOW')),
+  status_closer TEXT CHECK (status_closer IS NULL OR status_closer IN ('REUNIAO_MARCADA', 'NO_SHOW', 'ACOMPANHAMENTO', 'FECHAMENTO', 'GANHOU', 'PERDEU')),
   origem TEXT,
   fonte TEXT,
   observacoes TEXT,
+  motivo_perda TEXT,
+  valor_venda NUMERIC,
+  is_duplicado BOOLEAN DEFAULT false,
   deleted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tabela de Reuniões (Agenda)
+CREATE TABLE reunioes (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  lead_id BIGINT REFERENCES leads(id) ON DELETE CASCADE,
+  sdr_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  closer_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  data_hora TIMESTAMPTZ NOT NULL,
+  status TEXT CHECK (status IN ('AGENDADA', 'REALIZADA', 'NO_SHOW', 'CANCELADA')) DEFAULT 'AGENDADA',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -56,6 +74,11 @@ CREATE TRIGGER update_profiles_updated_at
 
 CREATE TRIGGER update_leads_updated_at
   BEFORE UPDATE ON leads
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_reunioes_updated_at
+  BEFORE UPDATE ON reunioes
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 

@@ -76,7 +76,7 @@ export default function UsuariosPage() {
     email: string
     password: string
     name: string
-    role: 'admin' | 'sdr'
+    role: Profile['role']
     visible_qualifications: Qualificacao[]
   }) => {
     setError(null)
@@ -94,7 +94,7 @@ export default function UsuariosPage() {
 
   const handleUpdateUser = async (userId: string, data: {
     name: string
-    role: 'admin' | 'sdr'
+    role: Profile['role']
     visible_qualifications: Qualificacao[]
   }) => {
     setError(null)

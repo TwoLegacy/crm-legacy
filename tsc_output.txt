@@ -1,0 +1,8 @@
+﻿src/app/admin/usuarios/page.tsx(83,37): error TS2345: Argument of type '{ email: string; password: string; name: string; role: "admin" | "sdr" | "closer"; visible_qualifications: Qualificacao[]; }' is not assignable to parameter of type '{ email: string; password: string; name: string; role: "admin" | "sdr"; visible_qualifications: Qualificacao[]; }'.
+  Types of property 'role' are incompatible.
+    Type '"admin" | "sdr" | "closer"' is not assignable to type '"admin" | "sdr"'.
+      Type '"closer"' is not assignable to type '"admin" | "sdr"'.
+src/app/admin/usuarios/page.tsx(102,39): error TS2345: Argument of type '{ name: string; role: "admin" | "sdr" | "closer"; visible_qualifications: Qualificacao[]; }' is not assignable to parameter of type '{ name?: string | undefined; role?: "admin" | "sdr" | undefined; visible_qualifications?: Qualificacao[] | undefined; }'.
+  Types of property 'role' are incompatible.
+    Type '"admin" | "sdr" | "closer"' is not assignable to type '"admin" | "sdr" | undefined'.
+      Type '"closer"' is not assignable to type '"admin" | "sdr" | undefined'.

@@ -10,6 +10,7 @@ import { DraggableKanbanBoard, DraggableKanbanColumn } from '@/components/Dragga
 import Sidebar from '@/components/Sidebar'
 import LeadFilters, { FilterState, filterLeads } from '@/components/LeadFilters'
 import CreateLeadModal from '@/components/CreateLeadModal'
+import AgendarReuniaoModal from '@/components/AgendarReuniaoModal'
 
 export default function SdrKanbanPage() {
   const router = useRouter()
@@ -22,6 +23,9 @@ export default function SdrKanbanPage() {
   const [error, setError] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   
+  // Modal de Agendamento
+  const [leadToSchedule, setLeadToSchedule] = useState<Lead | null>(null)
+
   // Filtros
   const [filters, setFilters] = useState<FilterState>({ 
     searchTerm: '', 
@@ -130,6 +134,10 @@ export default function SdrKanbanPage() {
     .filter(l => l.status_sdr === 'LEAD_PERDIDO')
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 
+  const noShows = filteredLeads
+    .filter(l => l.status_sdr === 'NO_SHOW')
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+
   // Contadores
   const totalMeusLeads = leads.filter(l => l.status_sdr === 'MEUS_LEADS').length
   const totalQualificacao = leads.filter(l => l.status_sdr === 'QUALIFICACAO').length
@@ -137,6 +145,7 @@ export default function SdrKanbanPage() {
   const totalEncaminhados = leads.filter(l => l.status_sdr === 'ENCAMINHADO_REUNIAO').length
   const totalLeadsPerdidos = leads.filter(l => l.status_sdr === 'LEAD_PERDIDO').length
   const totalNaoRespondeu = leads.filter(l => l.status_sdr === 'NAO_RESPONDEU').length
+  const totalNoShows = leads.filter(l => l.status_sdr === 'NO_SHOW').length
 
   const handleDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result
@@ -146,7 +155,13 @@ export default function SdrKanbanPage() {
     }
 
     const leadId = parseInt(draggableId)
-    const newStatus = destination.droppableId as 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU'
+    const newStatus = destination.droppableId as 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW'
+
+    if (newStatus === 'ENCAMINHADO_REUNIAO') {
+      const lead = leads.find(l => l.id === leadId)
+      if (lead) setLeadToSchedule(lead)
+      return // Abre o modal e para, NÃO atualizar o BD nem arrastar o card até a confirmação
+    }
 
     setLeads(prev => prev.map(l => 
       l.id === leadId ? { ...l, status_sdr: newStatus } : l
@@ -174,6 +189,11 @@ export default function SdrKanbanPage() {
     if (lead.status_sdr === 'MEUS_LEADS') newStatus = 'QUALIFICACAO'
     else if (lead.status_sdr === 'QUALIFICACAO') newStatus = 'PERTO_REUNIAO'
     else if (lead.status_sdr === 'PERTO_REUNIAO') newStatus = 'ENCAMINHADO_REUNIAO'
+
+    if (newStatus === 'ENCAMINHADO_REUNIAO') {
+      setLeadToSchedule(lead)
+      return
+    }
 
     if (newStatus) {
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status_sdr: newStatus } : l))
@@ -231,6 +251,17 @@ export default function SdrKanbanPage() {
 
   const hasActiveFilters = filters.searchTerm || filters.dateFrom || filters.dateTo || filters.tipoHospedagem || filters.origem || filters.fonte || filters.classificacao
 
+  const handleScheduleSuccess = async () => {
+    // Quando fechar e agendou
+    setLeadToSchedule(null)
+    if (profile) {
+      setLoadingLeads(true)
+      const leadsData = await getLeadsBySdr(profile.id)
+      setLeads(leadsData)
+      setLoadingLeads(false)
+    }
+  }
+
   return (
     <Sidebar>
       <div className="h-screen flex flex-col bg-gray-50">
@@ -284,6 +315,11 @@ export default function SdrKanbanPage() {
               <div className="text-center">
                 <p className="text-xl md:text-2xl font-bold text-gray-400">{totalNaoRespondeu}</p>
                 <p className="text-xs text-gray-500">Não Respondeu</p>
+              </div>
+              <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
+              <div className="text-center">
+                <p className="text-xl md:text-2xl font-bold text-orange-500">{totalNoShows}</p>
+                <p className="text-xs text-gray-500">No-Shows</p>
               </div>
               
               {hasActiveFilters && (
@@ -374,6 +410,15 @@ export default function SdrKanbanPage() {
                 onDeletar={handleRemoveFromList}
               />
               <DraggableKanbanColumn
+                id="NO_SHOW"
+                titulo="No-Shows (Resgate)"
+                leads={noShows}
+                cor="#f97316"
+                onEncaminhar={handleAdvance}
+                onVoltar={handleRetreat}
+                onDeletar={handleRemoveFromList}
+              />
+              <DraggableKanbanColumn
                 id="LEAD_PERDIDO"
                 titulo="Lead Perdido"
                 leads={leadsPerdidos}
@@ -395,9 +440,24 @@ export default function SdrKanbanPage() {
       <CreateLeadModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={(newLead) => setLeads(prev => [newLead, ...prev])}
-        sdrId={profile?.id || ''}
+        onSuccess={() => {
+          setIsCreateModalOpen(false)
+          if (profile) {
+            getLeadsBySdr(profile.id).then(setLeads)
+          }
+        }}
+        sdrId={profile.id}
       />
+
+      {leadToSchedule && (
+        <AgendarReuniaoModal
+          isOpen={!!leadToSchedule}
+          onClose={() => setLeadToSchedule(null)}
+          onSuccess={handleScheduleSuccess}
+          lead={leadToSchedule}
+          sdrId={profile.id}
+        />
+      )}
     </Sidebar>
   )
 }

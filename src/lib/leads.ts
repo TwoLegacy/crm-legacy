@@ -9,8 +9,9 @@ export interface Profile {
   id: string
   name: string
   email?: string
-  role: 'admin' | 'sdr'
+  role: 'admin' | 'sdr' | 'closer'
   visible_qualifications: Qualificacao[]
+  link_reuniao?: string | null
   created_at: string
   updated_at: string
 }
@@ -26,10 +27,14 @@ export interface Lead {
   instagram: string | null
   qtd_quartos_hospedagens: string | null
   owner_sdr_id: string | null
-  status_sdr: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | null
+  owner_closer_id: string | null
+  status_sdr: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW' | null
+  status_closer: 'REUNIAO_MARCADA' | 'NO_SHOW' | 'ACOMPANHAMENTO' | 'FECHAMENTO' | 'GANHOU' | 'PERDEU' | null
   fonte: 'quiz' | 'comunidade' | 'site' | 'vsl' | null
   origem: string | null
   observacoes: string | null
+  motivo_perda: string | null
+  valor_venda: number | null
   deleted_at: string | null
   // Campos específicos de comunidade
   maior_desafio: string | null
@@ -45,6 +50,23 @@ export interface Lead {
   is_duplicado: boolean | null
   created_at: string
   updated_at: string
+}
+
+export interface Reuniao {
+  id: number
+  lead_id: number
+  sdr_id: string | null
+  closer_id: string | null
+  data_hora: string
+  status: 'AGENDADA' | 'REALIZADA' | 'NO_SHOW' | 'CANCELADA'
+  created_at: string
+  updated_at: string
+}
+
+export interface ReuniaoComDetalhes extends Reuniao {
+  leads: any | null
+  sdr_profile: { name: string } | null
+  closer_profile: { name: string } | null
 }
 
 // =====================================================
@@ -134,6 +156,33 @@ export async function getLeadsBySdr(sdrId: string): Promise<Lead[]> {
   
   if (error) {
     console.error('Erro ao buscar leads do SDR:', error)
+    throw error
+  }
+  
+  const result = data || []
+  setCache(cacheKey, result)
+  return result
+}
+
+/**
+ * Busca leads de um Closer específico
+ */
+export async function getLeadsByCloser(closerId: string): Promise<Lead[]> {
+  const cacheKey = `leads:closer:${closerId}`
+  const cached = getCached<Lead[]>(cacheKey)
+  if (cached) return cached
+
+  const supabase = createClient()
+  
+  const { data, error } = await supabase
+    .from('leads')
+    .select('*')
+    .eq('owner_closer_id', closerId)
+    .is('deleted_at', null)
+    .order('updated_at', { ascending: false })
+  
+  if (error) {
+    console.error('Erro ao buscar leads do Closer:', error)
     throw error
   }
   
@@ -298,7 +347,7 @@ export async function deleteLead(leadId: number): Promise<void> {
  */
 export async function updateLeadStatus(
   leadId: number,
-  status: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU'
+  status: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW'
 ): Promise<Lead> {
   const supabase = createClient()
   
@@ -311,6 +360,31 @@ export async function updateLeadStatus(
   
   if (error) {
     console.error('Erro ao atualizar status:', error)
+    throw error
+  }
+  
+  invalidateCache('leads')
+  return data
+}
+
+/**
+ * Atualiza o status de um lead para o Closer
+ */
+export async function updateLeadStatusCloser(
+  leadId: number,
+  status: 'REUNIAO_MARCADA' | 'NO_SHOW' | 'ACOMPANHAMENTO' | 'FECHAMENTO' | 'GANHOU' | 'PERDEU'
+): Promise<Lead> {
+  const supabase = createClient()
+  
+  const { data, error } = await supabase
+    .from('leads')
+    .update({ status_closer: status })
+    .eq('id', leadId)
+    .select()
+    .single()
+  
+  if (error) {
+    console.error('Erro ao atualizar status do lead para closer:', error)
     throw error
   }
   
@@ -510,7 +584,7 @@ export async function getAllUsers(): Promise<Profile[]> {
  */
 export async function updateUserProfile(
   userId: string, 
-  updates: { name?: string; role?: 'admin' | 'sdr'; visible_qualifications?: Qualificacao[] }
+  updates: { name?: string; role?: 'admin' | 'sdr' | 'closer'; visible_qualifications?: Qualificacao[] }
 ): Promise<Profile> {
   const supabase = createClient()
   
@@ -541,7 +615,7 @@ export async function createUser(userData: {
   email: string
   password: string
   name: string
-  role: 'admin' | 'sdr'
+  role: 'admin' | 'sdr' | 'closer'
   visible_qualifications: Qualificacao[]
 }): Promise<{ success: boolean; user?: { id: string; email: string; name: string }; error?: string }> {
   const supabase = createClient()
@@ -682,4 +756,165 @@ export async function changeUserPassword(
     console.error('Erro ao alterar senha:', err)
     return { success: false, error: err.message || 'Erro de conexão' }
   }
+}
+
+// =====================================================
+// FUNÇÕES DE CLOSER E REUNIÃO
+// =====================================================
+
+export async function getAllClosers(): Promise<Profile[]> {
+  const cacheKey = 'closers:all'
+  const cached = getCached<Profile[]>(cacheKey)
+  if (cached) return cached
+
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('role', 'closer')
+    .order('name')
+  
+  if (error) {
+    console.error('Erro ao buscar closers:', error)
+    return []
+  }
+
+  if (data) setCache(cacheKey, data)
+  return data || []
+}
+
+export async function getReunioesAtivas(): Promise<Reuniao[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('reunioes')
+    .select('*')
+    .in('status', ['AGENDADA', 'REALIZADA'])
+    .order('data_hora')
+    
+  if (error) {
+    console.error('Erro ao buscar reuniões:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function getTodasReunioesAtivasComDetalhes(profileId?: string, role?: string): Promise<ReuniaoComDetalhes[]> {
+  const supabase = createClient()
+  let query = supabase
+    .from('reunioes')
+    .select(`
+      *,
+      leads ( * ),
+      sdr_profile:profiles!sdr_id ( name ),
+      closer_profile:profiles!closer_id ( name )
+    `)
+    .in('status', ['AGENDADA', 'REALIZADA'])
+    
+  if (role === 'sdr' && profileId) {
+    query = query.eq('sdr_id', profileId)
+  } else if (role === 'closer' && profileId) {
+    query = query.eq('closer_id', profileId)
+  }
+
+  const { data, error } = await query.order('data_hora')
+    
+  if (error) {
+    console.error('Erro ao buscar reuniões com detalhes:', error)
+    return []
+  }
+  return data as any
+}
+
+export async function encaminharParaCloser(
+  leadId: number,
+  closerId: string,
+  sdrId: string,
+  dataHoraISO: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient()
+  
+  // 1. Criar a reunião
+  const { error: reuniaoError } = await supabase
+    .from('reunioes')
+    .insert({
+      lead_id: leadId,
+      sdr_id: sdrId,
+      closer_id: closerId,
+      data_hora: dataHoraISO,
+      status: 'AGENDADA'
+    })
+    
+  if (reuniaoError) {
+    console.error('Erro ao criar reunião:', reuniaoError)
+    return { success: false, error: reuniaoError.message }
+  }
+
+  // 2. Atualizar o lead
+  const { error: leadError } = await supabase
+    .from('leads')
+    .update({
+      owner_closer_id: closerId,
+      status_closer: 'REUNIAO_MARCADA',
+      status_sdr: 'ENCAMINHADO_REUNIAO', // garante que sai do kanban principal do SDR
+    })
+    .eq('id', leadId)
+
+  if (leadError) {
+    console.error('Erro ao atualizar lead para closer:', leadError)
+    return { success: false, error: leadError.message }
+  }
+
+  invalidateCache()
+  return { success: true }
+}
+
+export async function updateReuniaoStatus(
+  reuniaoId: number,
+  status: 'AGENDADA' | 'REALIZADA' | 'NO_SHOW' | 'CANCELADA'
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('reunioes')
+    .update({ status })
+    .eq('id', reuniaoId)
+    
+  if (error) {
+    console.error('Erro ao atualizar status da reunião:', error)
+    return { success: false, error: error.message }
+  }
+  
+  invalidateCache()
+  return { success: true }
+}
+
+export async function devolverNoShowSdr(leadId: number): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient()
+  
+  // Atualiza as reuniões ativas deste lead para NO_SHOW, liberando o horário
+  const { error: reuniaoError } = await supabase
+    .from('reunioes')
+    .update({ status: 'NO_SHOW' })
+    .eq('lead_id', leadId)
+    .in('status', ['AGENDADA', 'REALIZADA'])
+
+  if (reuniaoError) {
+    console.error('Erro ao cancelar reuniões (No-show):', reuniaoError)
+  }
+
+  const { error } = await supabase
+    .from('leads')
+    .update({
+      owner_closer_id: null,
+      status_closer: null,
+      status_sdr: 'NO_SHOW'
+    })
+    .eq('id', leadId)
+    
+  if (error) {
+    console.error('Erro ao devolver lead NO_SHOW:', error)
+    return { success: false, error: error.message }
+  }
+  
+  invalidateCache()
+  return { success: true }
 }

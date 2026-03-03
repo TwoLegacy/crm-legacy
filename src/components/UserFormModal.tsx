@@ -13,12 +13,12 @@ interface UserFormModalProps {
     email: string
     password: string
     name: string
-    role: 'admin' | 'sdr'
+    role: Profile['role']
     visible_qualifications: Qualificacao[]
   }) => Promise<void>
   onUpdate: (userId: string, data: {
     name: string
-    role: 'admin' | 'sdr'
+    role: Profile['role']
     visible_qualifications: Qualificacao[]
   }) => Promise<void>
 }
@@ -41,7 +41,7 @@ export default function UserFormModal({
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'admin' | 'sdr'>('sdr')
+  const [role, setRole] = useState<Profile['role']>('sdr')
   const [visibleQualifications, setVisibleQualifications] = useState<Qualificacao[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -202,7 +202,7 @@ export default function UserFormModal({
           <PremiumSelect
             label="Função"
             value={role}
-            onChange={(val) => setRole(val as 'admin' | 'sdr')}
+            onChange={(val) => setRole(val as Profile['role'])}
             options={[
               { 
                 value: 'sdr', 
@@ -210,6 +210,15 @@ export default function UserFormModal({
                 icon: (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                )
+              },
+              { 
+                value: 'closer', 
+                label: 'Closer',
+                icon: (
+                  <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 )
               },
