@@ -7,6 +7,12 @@ import { getAllLeads, getAllSdrs, Lead, Profile } from '@/lib/leads'
 import { obterQualificacaoEColuna, ColunaGlobal, CORES_COLUNAS } from '@/lib/kanban'
 import { useAuth } from '@/contexts/AuthContext'
 import Sidebar from '@/components/Sidebar'
+import PremiumSelect from '@/components/ui/PremiumSelect'
+import { DayPicker, DateRange } from 'react-day-picker'
+import { ptBR } from 'date-fns/locale'
+import 'react-day-picker/dist/style.css'
+import { format } from 'date-fns'
+import { useRef } from 'react'
 
 // Dynamic imports for charts (SSR disabled)
 const LeadsPerSdrChart = dynamic(
@@ -41,10 +47,79 @@ export default function AdminDashboardPage() {
   const router = useRouter()
   const { user, profile, loading: authLoading } = useAuth()
   
-  const [leads, setLeads] = useState<Lead[]>([])
+  const [allLeads, setAllLeads] = useState<Lead[]>([])
   const [sdrs, setSdrs] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [isClient, setIsClient] = useState(false)
+
+  type DateFilterMode = 'all' | 'today' | '7d' | '30d' | 'custom'
+  const [dateFilter, setDateFilter] = useState<DateFilterMode>('all')
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
+  const calendarRef = useRef<HTMLDivElement>(null)
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setIsCalendarOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const getDateLabel = () => {
+    if (!dateRange?.from) return 'Selecionar período'
+    if (dateRange.to) {
+      if (dateRange.from.getTime() === dateRange.to.getTime()) {
+        return format(dateRange.from, 'dd/MM/yyyy')
+      }
+      return `${format(dateRange.from, 'dd/MM/yy')} até ${format(dateRange.to, 'dd/MM/yy')}`
+    }
+    return format(dateRange.from, 'dd/MM/yyyy')
+  }
+
+  const leads = useMemo(() => {
+    let subset = allLeads
+    
+    if (dateFilter === 'all') return subset
+    
+    const now = new Date()
+    
+    subset = subset.filter(l => {
+      const leadDate = new Date(l.created_at)
+      
+      if (dateFilter === 'today') {
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        return leadDate >= today
+      }      if (dateFilter === '7d') {
+        const start = new Date(now)
+        start.setDate(now.getDate() - 7)
+        start.setHours(0, 0, 0, 0)
+        return leadDate >= start
+      }
+      
+      if (dateFilter === '30d') {
+        const start = new Date(now)
+        start.setDate(now.getDate() - 30)
+        start.setHours(0, 0, 0, 0)
+        return leadDate >= start
+      }
+      
+      if (dateFilter === 'custom') {
+        if (dateRange?.from && dateRange?.to) {
+          const start = new Date(dateRange.from)
+          start.setHours(0, 0, 0, 0)
+          const end = new Date(dateRange.to)
+          end.setHours(23, 59, 59, 999)
+          return leadDate >= start && leadDate <= end
+        }
+        return true // if no range selected, show all
+      }
+      return true // Should not reach here for defined filters
+    })
+    return subset
+  }, [allLeads, dateFilter, dateRange])
 
   useEffect(() => {
     setIsClient(true)
@@ -60,7 +135,7 @@ export default function AdminDashboardPage() {
 
     if (!profile) return
 
-    if (profile.role !== 'admin') {
+    if (profile.role !== 'admin' && profile.role !== 'marketing') {
       router.replace('/sdr/kanban')
       return
     }
@@ -72,7 +147,7 @@ export default function AdminDashboardPage() {
           getAllLeads(),
           getAllSdrs()
         ])
-        setLeads(leadsData)
+        setAllLeads(leadsData)
         setSdrs(sdrsData)
       } catch (err) {
         console.error('Erro ao carregar dados:', err)
@@ -261,9 +336,102 @@ export default function AdminDashboardPage() {
     <Sidebar>
       <div className="min-h-screen bg-gray-50 p-4 md:p-6">
         {/* Header */}
-        <header className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Métricas e KPIs de atendimento</p>
+        <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-sm text-gray-500 mt-1">Métricas e KPIs de atendimento</p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-gray-100 min-w-[200px]">
+            <div className="w-full sm:w-56">
+              <PremiumSelect
+                value={dateFilter}
+                onChange={(val) => setDateFilter(val as DateFilterMode)}
+                options={[
+                  { value: 'all', label: 'Todo o período' },
+                  { value: 'today', label: 'Hoje' },
+                  { value: '7d', label: 'Últimos 7 dias' },
+                  { value: '30d', label: 'Últimos 30 dias' },
+                  { value: 'custom', label: 'Personalizado' }
+                ]}
+              />
+            </div>
+            
+            {dateFilter === 'custom' && (
+              <div className="relative" ref={calendarRef}>
+                <button
+                  onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                  className={`flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-lg border border-gray-100 text-sm font-medium transition-colors ${
+                    isCalendarOpen ? 'ring-2 ring-gray-200 bg-gray-100' : 'hover:bg-gray-100'
+                  } ${dateRange?.from ? 'text-gray-900' : 'text-gray-500'}`}
+                >
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {getDateLabel()}
+                </button>
+
+                {/* Calendário Popup */}
+                {isCalendarOpen && (
+                  <div className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 p-4 animate-in fade-in zoom-in-95 duration-200">
+                    <style>{`
+                      .dashboard-rdp {
+                        --rdp-cell-size: 36px;
+                        --rdp-accent-color: #8B0000;
+                        --rdp-background-color: #FEF2F2;
+                        margin: 0;
+                        font-size: 14px;
+                      }
+                      .dashboard-rdp .rdp-day_selected:not([disabled]) {
+                        background-color: #8B0000;
+                        color: white;
+                      }
+                      .dashboard-rdp .rdp-day_selected:hover:not([disabled]) {
+                        background-color: #6B0000;
+                      }
+                      .dashboard-rdp .rdp-day_range_middle {
+                        background-color: #FEE2E2;
+                        color: #8B0000;
+                      }
+                      .dashboard-rdp .rdp-day:hover:not([disabled]):not(.rdp-day_selected) {
+                        background-color: #FEF2F2;
+                      }
+                      .dashboard-rdp .rdp-button:focus-visible {
+                        outline: 2px solid #8B0000;
+                        outline-offset: 2px;
+                      }
+                      .dashboard-rdp .rdp-caption_label {
+                        font-weight: 600;
+                        color: #1F2937;
+                        font-size: 14px;
+                      }
+                      .dashboard-rdp .rdp-nav_button {
+                        color: #8B0000;
+                      }
+                      .dashboard-rdp .rdp-head_cell {
+                        color: #6B7280;
+                        font-weight: 500;
+                        font-size: 12px;
+                      }
+                    `}</style>
+                    <DayPicker
+                      className="dashboard-rdp"
+                      mode="range"
+                      selected={dateRange}
+                      onSelect={(range) => {
+                        setDateRange(range)
+                        if (range?.from && range?.to) setIsCalendarOpen(false)
+                      }}
+                      locale={ptBR}
+                      showOutsideDays
+                      numberOfMonths={1}
+                      disabled={{ after: new Date() }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Cards de Métricas Gerais */}

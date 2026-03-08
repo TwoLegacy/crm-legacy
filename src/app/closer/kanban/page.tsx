@@ -31,7 +31,7 @@ export default function CloserKanbanPage() {
 
   // Efeito isolado para o Admin puxar a lista de Closers
   useEffect(() => {
-    if (profile?.role === 'admin') {
+    if (profile?.role === 'admin' || profile?.role === 'marketing') {
       getAllClosers().then(data => {
         setClosers(data)
         if (data.length > 0 && !selectedCloserId) {
@@ -49,7 +49,7 @@ export default function CloserKanbanPage() {
     }
     
     // Admin ou Closer
-    if (profile.role !== 'closer' && profile.role !== 'admin') {
+    if (profile.role !== 'closer' && profile.role !== 'admin' && profile.role !== 'marketing') {
       router.replace('/sdr/kanban')
       return
     }
@@ -59,7 +59,7 @@ export default function CloserKanbanPage() {
 
   const loadLeads = async () => {
     if (!profile) return
-    const closerToFetch = profile.role === 'admin' ? selectedCloserId : profile.id
+    const closerToFetch = (profile.role === 'admin' || profile.role === 'marketing') ? selectedCloserId : profile.id
     if (!closerToFetch) return // aguarda popular selectedCloserId em caso de Admin
 
     setLoadingLeads(true)
@@ -91,8 +91,9 @@ export default function CloserKanbanPage() {
     const lead = leads.find(l => l.id === leadId)
     if (!lead) return
 
-    // Interceptações de Status Especiais
+    // Interceptações de Status Especiais (Salva otimista temporariamente e abre modal)
     if (newStatus === 'GANHOU' || newStatus === 'PERDEU' || newStatus === 'NO_SHOW') {
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status_closer: newStatus } : l))
       setActionLead(lead)
       setActionType(newStatus)
       return // Espera o modal
@@ -114,18 +115,17 @@ export default function CloserKanbanPage() {
     // Fechar modal otimista
     const finalType = actionType
     setActionLead(null)
-    setActionType(null)
-
     try {
       if (finalType === 'NO_SHOW') {
-        // Remove da vista do Closer imediatamente (volta pro SDR)
-        setLeads(prev => prev.filter(l => l.id !== leadId))
-        await devolverNoShowSdr(leadId)
+        const resp = await devolverNoShowSdr(leadId)
+        if (!resp.success) {
+           setError(resp.error || 'Erro ao devolver lead')
+           loadLeads() // rollback
+        }
       } else {
         // GANHOU ou PERDEU
         setLeads(prev => prev.map(l => l.id === leadId ? { 
           ...l, 
-          status_closer: finalType,
           valor_venda: data.valor || l.valor_venda,
           motivo_perda: data.motivo || l.motivo_perda
         } : l))
@@ -148,6 +148,17 @@ export default function CloserKanbanPage() {
     }
   }
 
+  const handleDeleteLead = (leadId: number) => {
+    setLeads(prev => prev.filter(l => l.id !== leadId))
+  }
+
+  // Cancelamento do Modal também precisa fazer rollback otimista
+  const handleModalCancel = () => {
+    setActionType(null)
+    setActionLead(null)
+    loadLeads() // Recarrega do banco pra desfazer o state otimista
+  }
+
   if (loadingLeads || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -165,7 +176,7 @@ export default function CloserKanbanPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <h1 className="text-2xl font-bold text-gray-900">Painel Closer</h1>
-              {profile.role === 'admin' && closers.length > 0 && (
+              {(profile.role === 'admin' || profile.role === 'marketing') && closers.length > 0 && (
                 <div className="w-64 max-w-sm ml-4 z-50">
                   <PremiumSelect
                     value={selectedCloserId}
@@ -204,36 +215,48 @@ export default function CloserKanbanPage() {
                 titulo="Reuniões Marcadas"
                 leads={reunioesMarcadas}
                 cor="#3b82f6"
+                isCloserView
+                onDeletar={handleDeleteLead}
               />
               <DraggableKanbanColumn
                 id="ACOMPANHAMENTO"
                 titulo="Acompanhamento"
                 leads={acompanhamento}
                 cor="#8b5cf6"
+                isCloserView
+                onDeletar={handleDeleteLead}
               />
               <DraggableKanbanColumn
                 id="FECHAMENTO"
                 titulo="Fechamento"
                 leads={fechamento}
                 cor="#14b8a6"
+                isCloserView
+                onDeletar={handleDeleteLead}
               />
               <DraggableKanbanColumn
                 id="GANHOU"
                 titulo="Ganhou"
                 leads={ganhou}
-                cor="#10b981"
+                cor="#059669"
+                isCloserView
+                onDeletar={handleDeleteLead}
               />
               <DraggableKanbanColumn
                 id="PERDEU"
                 titulo="Perdeu"
                 leads={perdeu}
                 cor="#ef4444"
+                isCloserView
+                onDeletar={handleDeleteLead}
               />
               <DraggableKanbanColumn
                 id="NO_SHOW"
                 titulo="No-Show (Devolver)"
                 leads={noShows}
-                cor="#f97316"
+                cor="#dc2626"
+                isCloserView
+                onDeletar={handleDeleteLead}
               />
             </DraggableKanbanBoard>
           </div>
@@ -243,10 +266,7 @@ export default function CloserKanbanPage() {
           isOpen={!!actionType}
           type={actionType}
           leadName={actionLead?.nome}
-          onClose={() => {
-            setActionType(null)
-            setActionLead(null)
-          }}
+          onClose={handleModalCancel}
           onConfirm={handleModalConfirm}
         />
       </div>

@@ -230,6 +230,16 @@ export default function UserFormModal({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04zM12 21a9.003 9.003 0 008.367-5.633L12 11.367 3.633 15.367A9.003 9.003 0 0012 21z" />
                   </svg>
                 )
+              },
+              { 
+                value: 'marketing', 
+                label: 'Marketing',
+                icon: (
+                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                  </svg>
+                )
               }
             ]}
           />

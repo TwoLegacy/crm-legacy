@@ -1,14 +1,19 @@
 'use client'
 
+import { useState } from 'react'
+
 interface ConfirmModalProps {
   isOpen: boolean
   title: string
   message: string
   confirmLabel?: string
   cancelLabel?: string
-  onConfirm: () => void
+  onConfirm: (inputValue?: string) => void
   onCancel: () => void
   variant?: 'default' | 'danger'
+  requireInput?: boolean
+  inputLabel?: string
+  inputPlaceholder?: string
 }
 
 export default function ConfirmModal({
@@ -20,19 +25,36 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
   variant = 'default',
+  requireInput = false,
+  inputLabel,
+  inputPlaceholder = 'Digite aqui...',
 }: ConfirmModalProps) {
+  const [inputValue, setInputValue] = useState('')
   if (!isOpen) return null
 
   const confirmButtonClass = variant === 'danger'
     ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
     : 'bg-[#8B0000] hover:bg-[#6B0000] focus:ring-[#8B0000]'
 
+  const isConfirmDisabled = requireInput && inputValue.trim() === ''
+
+  const handleConfirm = () => {
+    if (requireInput && inputValue.trim() === '') return
+    onConfirm(inputValue)
+    setInputValue('')
+  }
+  
+  const handleCancel = () => {
+    onCancel()
+    setInputValue('')
+  }
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop with fade animation */}
       <div 
         className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-        onClick={onCancel}
+        onClick={handleCancel}
       />
 
       {/* Modal */}
@@ -59,19 +81,32 @@ export default function ConfirmModal({
           <div className="px-6 pb-4 text-center">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
             <p className="text-gray-600">{message}</p>
+            
+            {requireInput && (
+              <div className="mt-4 text-left">
+                {inputLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{inputLabel}</label>}
+                <textarea
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder={inputPlaceholder}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B0000] focus:border-transparent resize-none h-24 text-sm"
+                />
+              </div>
+            )}
           </div>
 
           {/* Actions */}
           <div className="px-6 pb-6 flex gap-3">
             <button
-              onClick={onCancel}
+              onClick={handleCancel}
               className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors"
             >
               {cancelLabel}
             </button>
             <button
-              onClick={onConfirm}
-              className={`flex-1 px-4 py-2.5 text-sm font-medium text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${confirmButtonClass}`}
+              onClick={handleConfirm}
+              disabled={isConfirmDisabled}
+              className={`flex-1 px-4 py-2.5 text-sm font-medium text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${confirmButtonClass} disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {confirmLabel}
             </button>

@@ -12,6 +12,7 @@ interface DraggableKanbanColumnProps {
   cor?: string
   isAdmin?: boolean
   isComunidade?: boolean
+  isCloserView?: boolean
   onPuxarParaMim?: (leadId: number) => void
   onAtribuir?: (leadId: number) => void
   onEncaminhar?: (leadId: number) => void
@@ -28,6 +29,7 @@ export function DraggableKanbanColumn({
   cor,
   isAdmin = false,
   isComunidade = false,
+  isCloserView = false,
   onPuxarParaMim,
   onAtribuir,
   onEncaminhar,
@@ -84,6 +86,7 @@ export function DraggableKanbanColumn({
                         lead={lead}
                         isAdmin={isAdmin}
                         isComunidade={isComunidade}
+                        isCloserView={isCloserView}
                         onPuxarParaMim={onPuxarParaMim}
                         onAtribuir={onAtribuir}
                         onEncaminhar={onEncaminhar}

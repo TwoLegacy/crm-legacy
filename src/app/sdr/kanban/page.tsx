@@ -11,6 +11,7 @@ import Sidebar from '@/components/Sidebar'
 import LeadFilters, { FilterState, filterLeads } from '@/components/LeadFilters'
 import CreateLeadModal from '@/components/CreateLeadModal'
 import AgendarReuniaoModal from '@/components/AgendarReuniaoModal'
+import ConfirmModal from '@/components/ConfirmModal'
 
 export default function SdrKanbanPage() {
   const router = useRouter()
@@ -25,6 +26,10 @@ export default function SdrKanbanPage() {
   
   // Modal de Agendamento
   const [leadToSchedule, setLeadToSchedule] = useState<Lead | null>(null)
+  
+  // Modal de Perda
+  const [lossModalOpen, setLossModalOpen] = useState(false)
+  const [leadToMarkLoss, setLeadToMarkLoss] = useState<Lead | null>(null)
 
   // Filtros
   const [filters, setFilters] = useState<FilterState>({ 
@@ -62,12 +67,12 @@ export default function SdrKanbanPage() {
         const promises: Promise<any>[] = []
         
         // Se for admin, busca lista de SDRs
-        if (profile.role === 'admin') {
+        if (profile.role === 'admin' || profile.role === 'marketing') {
           promises.push(getAllSdrs().then(setSdrs))
         }
 
         // Busca leads do SDR selecionado (ou do próprio user)
-        const targetSdrId = profile.role === 'admin' ? (selectedSdrId || profile.id) : profile.id
+        const targetSdrId = (profile.role === 'admin' || profile.role === 'marketing') ? (selectedSdrId || profile.id) : profile.id
         
         // Se temos um ID alvo, buscamos os leads
         if (targetSdrId) {
@@ -161,6 +166,15 @@ export default function SdrKanbanPage() {
       const lead = leads.find(l => l.id === leadId)
       if (lead) setLeadToSchedule(lead)
       return // Abre o modal e para, NÃO atualizar o BD nem arrastar o card até a confirmação
+    }
+
+    if (newStatus === 'LEAD_PERDIDO') {
+      const lead = leads.find(l => l.id === leadId)
+      if (lead) {
+        setLeadToMarkLoss(lead)
+        setLossModalOpen(true)
+      }
+      return
     }
 
     setLeads(prev => prev.map(l => 
@@ -338,7 +352,7 @@ export default function SdrKanbanPage() {
           <LeadFilters onFilterChange={setFilters} />
 
           {/* Filtros de SDR (Apenas Admin) */}
-          {profile && profile.role === 'admin' && (
+          {profile && (profile.role === 'admin' || profile.role === 'marketing') && (
             <div className="mt-3 flex flex-wrap gap-2 pb-2">
               <span className="text-xs font-semibold text-gray-500 flex items-center mr-2">
                 Ver como:
@@ -458,6 +472,41 @@ export default function SdrKanbanPage() {
           sdrId={profile.id}
         />
       )}
+
+      <ConfirmModal
+        isOpen={lossModalOpen}
+        title="Motivo de Perda"
+        message={`O que levou à perda do lead "${leadToMarkLoss?.nome}"?`}
+        confirmLabel="Marcar como Perdido"
+        cancelLabel="Cancelar"
+        requireInput={true}
+        inputLabel="Motivo da Perda"
+        inputPlaceholder="Ex: Sem orçamento, Não tem interesse, etc."
+        onConfirm={async (motivo?: string) => {
+          if (!motivo || !leadToMarkLoss) return
+          const finalId = leadToMarkLoss.id
+          
+          setLeads(prev => prev.map(l => 
+            l.id === finalId ? { ...l, status_sdr: 'LEAD_PERDIDO', motivo_perda: motivo } : l
+          ))
+
+          try {
+            const supabase = createClient()
+            await supabase.from('leads').update({ status_sdr: 'LEAD_PERDIDO', motivo_perda: motivo }).eq('id', finalId)
+          } catch (err) {
+            console.error('Erro ao atualizar perda:', err)
+            if (profile) getLeadsBySdr(profile.id).then(setLeads)
+          } finally {
+            setLossModalOpen(false)
+            setLeadToMarkLoss(null)
+          }
+        }}
+        onCancel={() => {
+          setLossModalOpen(false)
+          setLeadToMarkLoss(null)
+        }}
+        variant="danger"
+      />
     </Sidebar>
   )
 }

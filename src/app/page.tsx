@@ -19,7 +19,7 @@ export default function Home() {
 
     // Se tem usuário e perfil, redireciona
     if (profile) {
-      router.replace(profile.role === 'admin' ? '/admin/kanban' : '/sdr/kanban')
+      router.replace(profile.role === 'admin' || profile.role === 'marketing' ? '/admin/kanban' : profile.role === 'closer' ? '/closer/kanban' : '/sdr/kanban')
     }
     // Se tem usuário mas não tem perfil (e não está carregando), deixa na tela com mensagem de erro (renderizado abaixo)
   }, [user, profile, loading, router])

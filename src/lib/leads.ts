@@ -9,7 +9,7 @@ export interface Profile {
   id: string
   name: string
   email?: string
-  role: 'admin' | 'sdr' | 'closer'
+  role: 'admin' | 'sdr' | 'closer' | 'marketing'
   visible_qualifications: Qualificacao[]
   link_reuniao?: string | null
   created_at: string
@@ -36,6 +36,7 @@ export interface Lead {
   motivo_perda: string | null
   valor_venda: number | null
   deleted_at: string | null
+  motivo_exclusao: string | null
   // Campos específicos de comunidade
   maior_desafio: string | null
   ja_tentou_de_tudo: string | null
@@ -50,6 +51,7 @@ export interface Lead {
   is_duplicado: boolean | null
   created_at: string
   updated_at: string
+  closer?: any
 }
 
 export interface Reuniao {
@@ -123,7 +125,10 @@ export async function getAllLeads(): Promise<Lead[]> {
   
   const { data, error } = await supabase
     .from('leads')
-    .select('*')
+    .select(`
+      *,
+      closer:profiles!owner_closer_id(name)
+    `)
     .is('deleted_at', null)
     .order('updated_at', { ascending: false })
   
@@ -149,7 +154,10 @@ export async function getLeadsBySdr(sdrId: string): Promise<Lead[]> {
   
   const { data, error } = await supabase
     .from('leads')
-    .select('*')
+    .select(`
+      *,
+      closer:profiles!owner_closer_id(name)
+    `)
     .eq('owner_sdr_id', sdrId)
     .is('deleted_at', null)
     .order('updated_at', { ascending: false })
@@ -176,7 +184,10 @@ export async function getLeadsByCloser(closerId: string): Promise<Lead[]> {
   
   const { data, error } = await supabase
     .from('leads')
-    .select('*')
+    .select(`
+      *,
+      closer:profiles!owner_closer_id(name)
+    `)
     .eq('owner_closer_id', closerId)
     .is('deleted_at', null)
     .order('updated_at', { ascending: false })
@@ -415,14 +426,17 @@ export async function updateLeadObservacoes(leadId: number, observacoes: string)
 }
 
 /**
- * Move um lead para a lixeira (soft delete)
+ * Move um lead para a lixeira (soft delete) com motivo obrigatório
  */
-export async function moveToBin(leadId: number): Promise<void> {
+export async function moveToBin(leadId: number, motivoExclusao: string): Promise<void> {
   const supabase = createClient()
   
   const { error: updateError } = await supabase
     .from('leads')
-    .update({ deleted_at: new Date().toISOString() })
+    .update({ 
+      deleted_at: new Date().toISOString(),
+      motivo_exclusao: motivoExclusao 
+    })
     .eq('id', leadId)
 
   if (updateError) {
@@ -432,7 +446,6 @@ export async function moveToBin(leadId: number): Promise<void> {
   
   invalidateCache('leads')
 }
-
 /**
  * Restaura um lead da lixeira
  */
@@ -452,17 +465,24 @@ export async function restoreFromBin(leadId: number): Promise<void> {
   invalidateCache('leads')
 }
 
-/**
- * Busca leads na lixeira
- */
-export async function getLeadsInBin(): Promise<Lead[]> {
+export async function getLeadsInBin(filters?: { closerId?: string; sdrId?: string }): Promise<Lead[]> {
   const supabase = createClient()
   
-  const { data, error } = await supabase
+  let query = supabase
     .from('leads')
     .select('*')
     .not('deleted_at', 'is', null)
     .order('deleted_at', { ascending: false })
+
+  if (filters?.closerId) {
+    query = query.eq('owner_closer_id', filters.closerId)
+  }
+
+  if (filters?.sdrId) {
+    query = query.eq('owner_sdr_id', filters.sdrId)
+  }
+  
+  const { data, error } = await query
   
   if (error) {
     console.error('Erro ao buscar lixeira:', error)
@@ -584,7 +604,7 @@ export async function getAllUsers(): Promise<Profile[]> {
  */
 export async function updateUserProfile(
   userId: string, 
-  updates: { name?: string; role?: 'admin' | 'sdr' | 'closer'; visible_qualifications?: Qualificacao[] }
+  updates: { name?: string; role?: Profile['role']; visible_qualifications?: Qualificacao[] }
 ): Promise<Profile> {
   const supabase = createClient()
   
@@ -615,7 +635,7 @@ export async function createUser(userData: {
   email: string
   password: string
   name: string
-  role: 'admin' | 'sdr' | 'closer'
+  role: 'admin' | 'sdr' | 'closer' | 'marketing'
   visible_qualifications: Qualificacao[]
 }): Promise<{ success: boolean; user?: { id: string; email: string; name: string }; error?: string }> {
   const supabase = createClient()
@@ -829,24 +849,26 @@ export async function encaminharParaCloser(
   leadId: number,
   closerId: string,
   sdrId: string,
-  dataHoraISO: string
+  dataHoraISO?: string
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
   
-  // 1. Criar a reunião
-  const { error: reuniaoError } = await supabase
-    .from('reunioes')
-    .insert({
-      lead_id: leadId,
-      sdr_id: sdrId,
-      closer_id: closerId,
-      data_hora: dataHoraISO,
-      status: 'AGENDADA'
-    })
-    
-  if (reuniaoError) {
-    console.error('Erro ao criar reunião:', reuniaoError)
-    return { success: false, error: reuniaoError.message }
+  // 1. Criar a reunião se dataHora for fornecida (fluxo legado interligado com Agenda)
+  if (dataHoraISO) {
+    const { error: reuniaoError } = await supabase
+      .from('reunioes')
+      .insert({
+        lead_id: leadId,
+        sdr_id: sdrId,
+        closer_id: closerId,
+        data_hora: dataHoraISO,
+        status: 'AGENDADA'
+      })
+      
+    if (reuniaoError) {
+      console.error('Erro ao criar reunião:', reuniaoError)
+      return { success: false, error: reuniaoError.message }
+    }
   }
 
   // 2. Atualizar o lead
@@ -904,8 +926,7 @@ export async function devolverNoShowSdr(leadId: number): Promise<{ success: bool
   const { error } = await supabase
     .from('leads')
     .update({
-      owner_closer_id: null,
-      status_closer: null,
+      status_closer: 'NO_SHOW',
       status_sdr: 'NO_SHOW'
     })
     .eq('id', leadId)

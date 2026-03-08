@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, Fragment, useMemo } from 'react'
+import { useState, Fragment, useMemo, useEffect } from 'react'
 import { Lead, moveToBin } from '@/lib/leads'
 import { obterQualificacaoEColuna, CORES_COLUNAS } from '@/lib/kanban'
+import { createClient } from '@/lib/supabaseClient'
 import LeadDetailsModal from './LeadDetailsModal'
 import ConfirmModal from './ConfirmModal'
 
@@ -11,6 +12,7 @@ interface LeadCardProps {
   showActions?: boolean
   isAdmin?: boolean
   isComunidade?: boolean
+  isCloserView?: boolean
   sdrName?: string
   onPuxarParaMim?: (leadId: number) => void
   onAtribuir?: (leadId: number) => void
@@ -28,6 +30,7 @@ export default function LeadCard({
   showActions = true,
   isAdmin = false,
   isComunidade = false,
+  isCloserView = false,
   sdrName,
   onPuxarParaMim,
   onAtribuir,
@@ -77,6 +80,51 @@ export default function LeadCard({
   }
 
   const instagramIsWebsite = isWebsite(lead.instagram)
+
+  // --- BUSCA DO NOME DO CLOSER ---
+  const [closerNameFallback, setCloserNameFallback] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (lead.owner_closer_id && (!lead.closer || typeof lead.closer === 'string' || (Array.isArray(lead.closer) && lead.closer.length === 0))) {
+      let isMounted = true
+      const fetchName = async () => {
+        try {
+           const supabase = createClient()
+           const { data } = await supabase.from('profiles').select('name').eq('id', lead.owner_closer_id).single()
+           if (isMounted && data && data.name) {
+             setCloserNameFallback(data.name)
+           }
+        } catch (e) { console.error(e) }
+      }
+      fetchName()
+      return () => { isMounted = false }
+    }
+  }, [lead.owner_closer_id, lead.closer])
+
+  let finalCloserName = closerNameFallback;
+  if (!finalCloserName && lead.closer) {
+    if (Array.isArray(lead.closer) && lead.closer.length > 0) finalCloserName = lead.closer[0]?.name
+    else if ((lead.closer as any).name) finalCloserName = (lead.closer as any).name
+  }
+
+  // --- BUSCA DO NOME DO SDR (para a view do Closer) ---
+  const [sdrNameFallback, setSdrNameFallback] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isCloserView && lead.owner_sdr_id) {
+      let isMounted = true
+      const fetchSdrName = async () => {
+        try {
+          const supabase = createClient()
+          const { data } = await supabase.from('profiles').select('name').eq('id', lead.owner_sdr_id).single()
+          if (isMounted && data && data.name) setSdrNameFallback(data.name)
+        } catch (e) { console.error(e) }
+      }
+      fetchSdrName()
+      return () => { isMounted = false }
+    }
+  }, [isCloserView, lead.owner_sdr_id])
+  // ------------------------------
 
   return (
     <Fragment>
@@ -209,12 +257,50 @@ export default function LeadCard({
                         ? 'bg-indigo-100 text-indigo-700'
                         : 'bg-gray-100 text-gray-600'
               }`}>
-                {lead.status_sdr === 'ENCAMINHADO_REUNIAO' ? 'Reunião' : 
+                {lead.status_sdr === 'ENCAMINHADO_REUNIAO' ? 'Encaminhado' : 
                  lead.status_sdr === 'VENDEU' ? 'Vendido' : 
                  lead.status_sdr === 'QUALIFICACAO' ? 'Qualificação' : 
                  lead.status_sdr === 'PERTO_REUNIAO' ? 'Perto de reunião' : 'Novo'}
               </span>
             )}
+          </div>
+        )}
+
+        {/* Mostra info de encaminhamento contextual */}
+        {!isCloserView && lead.status_sdr === 'ENCAMINHADO_REUNIAO' && lead.owner_closer_id && finalCloserName && (
+          <div className="mt-3 px-2.5 py-1.5 bg-green-50 rounded-lg border border-green-100 flex items-center justify-between shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <svg className="w-3.5 h-3.5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-[10px] uppercase font-bold text-green-600 leading-none">Encaminhado para</span>
+                <span className="text-xs font-semibold text-green-800 truncate leading-tight mt-0.5">{finalCloserName}</span>
+              </div>
+            </div>
+            <div className="text-[10px] font-medium text-green-600 bg-green-100/50 px-1.5 py-0.5 rounded-full flex-shrink-0">
+              Closer
+            </div>
+          </div>
+        )}
+        {isCloserView && lead.owner_sdr_id && sdrNameFallback && (
+          <div className="mb-2 flex items-center gap-1.5 px-2 py-1.5 bg-blue-50 rounded-lg border border-blue-100">
+            <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span className="text-xs text-blue-700 font-semibold">
+              Encaminhado de {sdrNameFallback}
+            </span>
+          </div>
+        )}
+
+        {/* Motivo de Perda em Lead Perdido (Visão SDR e Visão Closer se PERDEU) */}
+        {(lead.status_sdr === 'LEAD_PERDIDO' || (isCloserView && lead.status_closer === 'PERDEU')) && lead.motivo_perda && (
+          <div className="mt-3 mb-2 px-2.5 py-2 bg-red-50 rounded-lg border border-red-100 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
+            <span className="text-[10px] uppercase font-bold text-red-600 leading-none block mb-1">Motivo da Perda</span>
+            <p className="text-xs font-medium text-red-800 leading-tight">
+              {lead.motivo_perda}
+            </p>
           </div>
         )}
 
@@ -473,13 +559,17 @@ export default function LeadCard({
       <ConfirmModal
         isOpen={binModalOpen}
         title="Mover para Lixeira"
-        message={`Tem certeza que deseja mover o lead "${lead.nome}" para a lixeira? Ele sairá do seu Kanban mas poderá ser recuperado pelo administrador.`}
+        message={`Tem certeza que deseja mover o lead "${lead.nome}" para a lixeira?`}
         confirmLabel={isDeleting ? "Processando..." : "Mover para Lixeira"}
         cancelLabel="Cancelar"
-        onConfirm={async () => {
+        requireInput={true}
+        inputLabel="Motivo da exclusão"
+        inputPlaceholder="Por que este lead está sendo excluído?"
+        onConfirm={async (motivoExclusao?: string) => {
+          if (!motivoExclusao) return
           setIsDeleting(true)
           try {
-            await moveToBin(lead.id)
+            await moveToBin(lead.id, motivoExclusao)
             if (onDeletar) onDeletar(lead.id)
           } catch (err) {
             console.error('Erro ao mover para lixeira:', err)

@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import Sidebar from '@/components/Sidebar'
 import ConfirmModal from '@/components/ConfirmModal'
 
-export default function LixeiraPage() {
+export default function SdrLixeiraPage() {
   const router = useRouter()
   const { user, profile, loading: authLoading } = useAuth()
   const [leads, setLeads] = useState<Lead[]>([])
@@ -25,18 +25,19 @@ export default function LixeiraPage() {
       return
     }
 
-    if (!profile || profile.role !== 'admin') {
+    if (!profile || profile.role !== 'sdr') {
       router.replace('/login')
       return
     }
 
-    fetchLeads()
+    // Se estiver tudo ok, podemos buscar
+    fetchLeads(profile.id)
   }, [user, profile, authLoading, router])
 
-  const fetchLeads = async () => {
+  const fetchLeads = async (sdrId: string) => {
     setLoading(true)
     try {
-      const data = await getLeadsInBin()
+      const data = await getLeadsInBin({ sdrId })
       setLeads(data)
       setError(null)
     } catch (err) {
@@ -60,28 +61,7 @@ export default function LixeiraPage() {
     }
   }
 
-  const handleDeletePermanentClick = (id: number, nome: string) => {
-    setSelectedLead({ id, nome })
-    setDeleteModalOpen(true)
-  }
 
-  const handleConfirmDeletePermanent = async () => {
-    if (!selectedLead) return
-    
-    const { id } = selectedLead
-    setProcessingId(id)
-    setDeleteModalOpen(false)
-    try {
-      await deleteLead(id)
-      setLeads(prev => prev.filter(l => l.id !== id))
-      setError(null)
-    } catch (err) {
-      setError('Erro ao deletar lead permanentemente.')
-    } finally {
-      setProcessingId(null)
-      setSelectedLead(null)
-    }
-  }
 
   if (authLoading || (loading && leads.length === 0)) {
     return (
@@ -167,16 +147,6 @@ export default function LixeiraPage() {
                           </svg>
                           Restaurar
                         </button>
-                        <button
-                          onClick={() => handleDeletePermanentClick(lead.id, lead.nome)}
-                          disabled={processingId === lead.id}
-                          className="px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Excluir Total
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -187,19 +157,6 @@ export default function LixeiraPage() {
         )}
       </div>
 
-      <ConfirmModal
-        isOpen={deleteModalOpen}
-        title="Deletar Lead Permanentemente"
-        message={`Tem certeza que deseja DELETAR o lead "${selectedLead?.nome}"? Esta ação é IRREVERSÍVEL e o lead será removido do sistema.`}
-        confirmLabel="Deletar Permanentemente"
-        cancelLabel="Cancelar"
-        onConfirm={handleConfirmDeletePermanent}
-        onCancel={() => {
-          setDeleteModalOpen(false)
-          setSelectedLead(null)
-        }}
-        variant="danger"
-      />
     </Sidebar>
   )
 }

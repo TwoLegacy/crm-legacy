@@ -107,7 +107,7 @@ export default function AdminKanbanPage() {
   
   // Verifica se o usuário pode ver os cards de uma coluna específica
   const podeVerCardsColuna = (coluna: ColunaGlobal): boolean => {
-    if (profile?.role === 'admin') return true
+    if (profile?.role === 'admin' || profile?.role === 'marketing') return true
     const qualificacao = Object.entries(QUALIFICACAO_PARA_COLUNA)
       .find(([_, col]) => col === coluna)?.[0] as Qualificacao
     return profile?.visible_qualifications?.includes(qualificacao) ?? false
