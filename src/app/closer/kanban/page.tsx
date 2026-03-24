@@ -10,6 +10,7 @@ import { DraggableKanbanBoard, DraggableKanbanColumn } from '@/components/Dragga
 import Sidebar from '@/components/Sidebar'
 import CloserActionModal from '@/components/CloserActionModal'
 import PremiumSelect from '@/components/ui/PremiumSelect'
+import CreateCloserLeadModal from '@/components/CreateCloserLeadModal'
 
 type CloserKanbanStatus = 'REUNIAO_MARCADA' | 'NO_SHOW' | 'ACOMPANHAMENTO' | 'FECHAMENTO' | 'GANHOU' | 'PERDEU'
 
@@ -24,6 +25,9 @@ export default function CloserKanbanPage() {
   // Modais de Ação (Arrasto)
   const [actionLead, setActionLead] = useState<Lead | null>(null)
   const [actionType, setActionType] = useState<'GANHOU' | 'PERDEU' | 'NO_SHOW' | null>(null)
+  
+  // Modal de Criação de Lead
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   // Filtros Admin
   const [closers, setClosers] = useState<Profile[]>([])
@@ -92,23 +96,46 @@ export default function CloserKanbanPage() {
     if (!lead) return
 
     // Interceptações de Status Especiais (Salva otimista temporariamente e abre modal)
-    if (newStatus === 'GANHOU' || newStatus === 'PERDEU' || newStatus === 'NO_SHOW') {
-      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status_closer: newStatus } : l))
+    if (newStatus === 'GANHOU' || newStatus === 'PERDEU' || (newStatus === 'NO_SHOW' && lead.status_closer !== 'NO_SHOW')) {
       setActionLead(lead)
-      setActionType(newStatus)
+      setActionType(newStatus as any)
       return // Espera o modal
     }
 
     // Status Comuns - Salva otimista
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status_closer: newStatus } : l))
+    // Se estiver saindo do GANHOU, limpa os dados financeiros
+    const outOfGanhou = lead.status_closer === 'GANHOU' && newStatus !== 'GANHOU'
+
+    setLeads(prev => prev.map(l => l.id === leadId ? { 
+      ...l, 
+      status_closer: newStatus,
+      valor_venda: outOfGanhou ? null : l.valor_venda,
+      tipo_venda: outOfGanhou ? null : l.tipo_venda,
+      meses_contrato: outOfGanhou ? null : l.meses_contrato,
+      motivo_perda: (lead.status_closer === 'PERDEU' && newStatus !== 'PERDEU') ? null : l.motivo_perda
+    } : l))
+
     try {
       await updateLeadStatusCloser(leadId, newStatus)
+      
+      // Persiste a limpeza se for o caso
+      if (outOfGanhou) {
+        const supabase = createClient()
+        await supabase.from('leads').update({ 
+          valor_venda: null, 
+          tipo_venda: null, 
+          meses_contrato: null 
+        }).eq('id', leadId)
+      } else if (lead.status_closer === 'PERDEU' && newStatus !== 'PERDEU') {
+        const supabase = createClient()
+        await supabase.from('leads').update({ motivo_perda: null }).eq('id', leadId)
+      }
     } catch {
       loadLeads() // Rollback on error
     }
   }
 
-  const handleModalConfirm = async (data: { valor?: number; motivo?: string }) => {
+  const handleModalConfirm = async (data: { valor?: number; tipo_venda?: 'TCV' | 'MRR'; meses_contrato?: number; motivo?: string }) => {
     if (!actionLead || !actionType) return
     const leadId = actionLead.id
 
@@ -126,7 +153,10 @@ export default function CloserKanbanPage() {
         // GANHOU ou PERDEU
         setLeads(prev => prev.map(l => l.id === leadId ? { 
           ...l, 
+          status_closer: finalType, // Atualiza o status aqui!
           valor_venda: data.valor || l.valor_venda,
+          tipo_venda: data.tipo_venda || (l.tipo_venda as any),
+          meses_contrato: data.meses_contrato || l.meses_contrato,
           motivo_perda: data.motivo || l.motivo_perda
         } : l))
 
@@ -136,11 +166,16 @@ export default function CloserKanbanPage() {
         // Save extra data manually
         const supabase = createClient()
         if (finalType === 'GANHOU' && data.valor) {
-          await supabase.from('leads').update({ valor_venda: data.valor }).eq('id', leadId)
+          await supabase.from('leads').update({ 
+            valor_venda: data.valor,
+            tipo_venda: data.tipo_venda,
+            meses_contrato: data.meses_contrato || null
+          }).eq('id', leadId)
         } else if (finalType === 'PERDEU' && data.motivo) {
           await supabase.from('leads').update({ motivo_perda: data.motivo }).eq('id', leadId)
         }
       }
+      setActionType(null) // Fecha o modal após o sucesso
     } catch (err: any) {
       console.error('Erro na ação do closer', err)
       setError(err.message)
@@ -188,8 +223,19 @@ export default function CloserKanbanPage() {
               )}
             </div>
 
-            <div className="flex gap-4 p-2 bg-gray-50 rounded-xl">
-              <div className="text-center px-4 border-r">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="px-4 py-2 bg-[#8B0000] text-white rounded-lg hover:bg-[#6B0000] transition-colors shadow-md text-sm font-semibold flex items-center gap-2 h-fit"
+                title="Criar Lead Manualmente"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Novo Lead
+              </button>
+              <div className="flex gap-4 p-2 bg-gray-50 rounded-xl">
+                <div className="text-center px-4 border-r">
                 <p className="text-xl font-bold text-slate-700">{leads.length}</p>
                 <p className="text-xs text-gray-500">Meus Leads</p>
               </div>
@@ -197,6 +243,7 @@ export default function CloserKanbanPage() {
                 <p className="text-xl font-bold text-emerald-600">{ganhou.length}</p>
                 <p className="text-xs text-gray-500">Ganhos</p>
               </div>
+            </div>
             </div>
           </div>
         </header>
@@ -268,6 +315,15 @@ export default function CloserKanbanPage() {
           leadName={actionLead?.nome}
           onClose={handleModalCancel}
           onConfirm={handleModalConfirm}
+        />
+
+        <CreateCloserLeadModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          closerId={(profile.role === 'admin' || profile.role === 'marketing') ? selectedCloserId : profile.id}
+          onSuccess={(newLead) => {
+            setLeads(prev => [newLead, ...prev])
+          }}
         />
       </div>
     </Sidebar>

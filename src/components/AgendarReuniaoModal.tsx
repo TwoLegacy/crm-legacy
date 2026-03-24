@@ -84,7 +84,7 @@ export default function AgendarReuniaoModal({ isOpen, onClose, onSuccess, lead, 
         </div>
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto">
+        <div className="p-6 overflow-visible relative z-50">
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
               {error}
@@ -93,7 +93,7 @@ export default function AgendarReuniaoModal({ isOpen, onClose, onSuccess, lead, 
 
           <div className="space-y-5">
             {/* Escolha do Closer */}
-            <div className="z-50">
+            <div className="relative z-50">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Closer (Vendedor Final)</label>
               <PremiumSelect
                 value={selectedCloserId}

@@ -35,6 +35,8 @@ export interface Lead {
   observacoes: string | null
   motivo_perda: string | null
   valor_venda: number | null
+  tipo_venda: 'TCV' | 'MRR' | null
+  meses_contrato: number | null
   deleted_at: string | null
   motivo_exclusao: string | null
   // Campos específicos de comunidade

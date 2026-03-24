@@ -7,19 +7,23 @@ import PremiumSelect from '@/components/ui/PremiumSelect'
 interface CloserActionModalProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: (data: { valor?: number; motivo?: string }) => void
+  onConfirm: (data: { valor?: number; tipo_venda?: 'TCV' | 'MRR'; meses_contrato?: number; motivo?: string }) => void
   type: 'GANHOU' | 'PERDEU' | 'NO_SHOW' | null
   leadName?: string
 }
 
 export default function CloserActionModal({ isOpen, onClose, onConfirm, type, leadName }: CloserActionModalProps) {
   const [valor, setValor] = useState('')
+  const [tipoVenda, setTipoVenda] = useState<'TCV' | 'MRR'>('TCV')
+  const [mesesContrato, setMesesContrato] = useState('12')
   const [motivo, setMotivo] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
     if (isOpen) {
       setValor('')
+      setTipoVenda('TCV')
+      setMesesContrato('12')
       setMotivo('')
       setError('')
     }
@@ -34,7 +38,11 @@ export default function CloserActionModal({ isOpen, onClose, onConfirm, type, le
         setError('Insira um valor financeiro válido.')
         return
       }
-      onConfirm({ valor: numValor })
+      onConfirm({ 
+        valor: numValor, 
+        tipo_venda: tipoVenda, 
+        meses_contrato: tipoVenda === 'MRR' ? parseInt(mesesContrato) : undefined 
+      })
     } 
     else if (type === 'PERDEU') {
       if (!motivo.trim()) {
@@ -73,15 +81,66 @@ export default function CloserActionModal({ isOpen, onClose, onConfirm, type, le
         )}
 
         {type === 'GANHOU' && (
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Valor da Venda (R$)</label>
-            <input
-              type="number"
-              value={valor}
-              onChange={e => setValor(e.target.value)}
-              placeholder="Ex: 1500.00"
-              className="w-full h-11 px-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-            />
+          <div className="mb-6 space-y-4">
+            <div className="flex p-1 bg-gray-100 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setTipoVenda('TCV')}
+                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+                  tipoVenda === 'TCV' 
+                    ? 'bg-white text-emerald-600 shadow-sm' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                TCV (Venda Total)
+              </button>
+              <button
+                type="button"
+                onClick={() => setTipoVenda('MRR')}
+                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+                  tipoVenda === 'MRR' 
+                    ? 'bg-white text-emerald-600 shadow-sm' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                MRR (Recorrência)
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">
+                Valor da Venda ({tipoVenda})
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">R$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={valor}
+                  onChange={e => setValor(e.target.value)}
+                  placeholder="0,00"
+                  className="w-full h-12 pl-12 pr-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium"
+                />
+              </div>
+            </div>
+
+            {tipoVenda === 'MRR' && (
+              <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">
+                  Tempo de Contrato (Meses)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={mesesContrato}
+                    onChange={e => setMesesContrato(e.target.value)}
+                    className="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium"
+                    placeholder="Ex: 12"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">meses</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

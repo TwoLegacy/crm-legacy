@@ -236,6 +236,21 @@ export default function LeadCard({
               </span>
             )}
           </div>
+
+          {lead.valor_venda && (
+            <div className="mt-2 px-2 py-1.5 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-tight">Venda Finalizada</span>
+              </div>
+              <span className="text-xs font-bold text-emerald-700">
+                {lead.tipo_venda || 'TCV'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(lead.valor_venda)}
+                {lead.tipo_venda === 'MRR' && lead.meses_contrato && (
+                  <span className="ml-1 text-[10px] opacity-75">({lead.meses_contrato} meses)</span>
+                )}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* SDR atribuído (se houver) */}
@@ -424,6 +439,7 @@ export default function LeadCard({
               <span className="text-xs truncate text-blue-700 font-medium">Diária: R$ {lead.valor_diaria}</span>
             </div>
           )}
+          {/* Os botões de ação começam abaixo */}
 
           {/* Botões de ação */}
           {/* Botões de ação */}

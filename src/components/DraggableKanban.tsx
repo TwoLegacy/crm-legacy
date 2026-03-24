@@ -94,6 +94,7 @@ export function DraggableKanbanColumn({
                         onVendeu={onVendeu}
                         onDevolver={onDevolver}
                         onDeletar={onDeletar}
+                        isDragging={snapshot.isDragging}
                       />
                     </div>
                   )}
