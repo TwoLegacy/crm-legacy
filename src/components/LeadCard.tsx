@@ -72,6 +72,9 @@ export default function LeadCard({
   // Verifica se é lead do Site
   const isSite = lead.fonte?.toLowerCase() === 'site'
 
+  // Verifica se é lead de IA
+  const isIA = lead.fonte?.toLowerCase() === 'ia'
+
   // Verifica se o campo instagram é na verdade um website
   const isWebsite = (value: string | null): boolean => {
     if (!value) return false
@@ -130,13 +133,22 @@ export default function LeadCard({
     <Fragment>
       <div 
         onClick={() => !isDragging && setIsModalOpen(true)}
-        className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer group"
+        className={`rounded-xl shadow-sm border p-4 transition-all duration-200 cursor-pointer group ${
+          isIA 
+            ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 hover:border-slate-700 text-slate-100 shadow-indigo-900/10' 
+            : 'bg-white border-gray-100 hover:shadow-md hover:border-gray-200 text-gray-900'
+        }`}
       >
         {/* Header com nome, qualificação e engrenagem */}
         <div className="flex flex-col gap-2 mb-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900 text-sm leading-tight break-words flex items-center gap-2">
+              <h3 className={`font-semibold text-sm leading-tight break-words flex items-center gap-2 ${isIA ? 'text-white' : 'text-gray-900'}`}>
+                {isIA && (
+                  <svg className="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                )}
                 {lead.nome}
                 {lead.origem?.toLowerCase() === 'brasil' && (
                   <img src="/flags/br.png" alt="Brasil" className="w-5 h-auto rounded-sm border border-gray-100 flex-shrink-0" />
@@ -211,6 +223,14 @@ export default function LeadCard({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 QUIZ
+              </span>
+            )}
+            {isIA && (
+              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-600 text-white flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                IA
               </span>
             )}
             <span 
@@ -319,8 +339,38 @@ export default function LeadCard({
           </div>
         )}
 
+        {/* Informações específicas de IA e Hospedagem */}
+        {(lead.prioridade || lead.cargo_atual || (isIA && lead.nome_empresa) || (!isIA && lead.budget)) && (
+          <div className={`mb-3 p-2 rounded-lg border flex flex-col gap-1.5 ${isIA ? 'bg-slate-800/50 border-slate-700' : 'bg-gray-50 border-gray-100'}`}>
+            {lead.prioridade && (
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] font-bold uppercase ${isIA ? 'text-slate-400' : 'text-gray-500'}`}>Prioridade:</span>
+                <span className={`text-xs font-bold ${isIA ? 'text-indigo-400' : 'text-[#8B0000]'}`}>{lead.prioridade}</span>
+              </div>
+            )}
+            {isIA && lead.cargo_atual && (
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] font-bold uppercase ${isIA ? 'text-slate-400' : 'text-gray-500'}`}>Cargo:</span>
+                <span className="text-xs font-medium truncate max-w-[120px]">{lead.cargo_atual}</span>
+              </div>
+            )}
+            {isIA && lead.nome_empresa && (
+              <div className="flex items-center justify-between border-t border-slate-700/50 pt-1.5 mt-0.5">
+                <span className={`text-[10px] font-bold uppercase ${isIA ? 'text-slate-400' : 'text-gray-500'}`}>Empresa:</span>
+                <span className="text-xs font-bold text-indigo-300 truncate max-w-[120px]">{lead.nome_empresa}</span>
+              </div>
+            )}
+            {!isIA && lead.budget && (
+              <div className="flex items-center justify-between border-t border-gray-200 pt-1.5 mt-0.5">
+                <span className={`text-[10px] font-bold uppercase ${isIA ? 'text-slate-400' : 'text-gray-500'}`}>Budget:</span>
+                <span className="text-xs font-bold text-emerald-600">{lead.budget}</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Informações do lead */}
-        <div className="space-y-1.5 text-sm text-gray-600 mb-3">
+        <div className={`space-y-1.5 text-sm mb-3 ${isIA ? 'text-slate-300' : 'text-gray-600'}`}>
           {lead.whatsapp && (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">

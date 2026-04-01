@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { DropResult } from '@hello-pangea/dnd'
 import { createClient } from '@/lib/supabaseClient'
 import { getLeadsByCloser, updateLeadStatusCloser, devolverNoShowSdr, Lead, Profile, getAllClosers } from '@/lib/leads'
 import { useAuth } from '@/contexts/AuthContext'
@@ -84,19 +83,20 @@ export default function CloserKanbanPage() {
   const ganhou = leads.filter(l => l.status_closer === 'GANHOU').sort((a,b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
   const perdeu = leads.filter(l => l.status_closer === 'PERDEU').sort((a,b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 
-  const handleDragEnd = async (result: DropResult) => {
-    const { destination, source, draggableId } = result
-    if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
+  const handleDragEnd = async (result: { draggableId: string; sourceColumnId: string; destinationColumnId: string }) => {
+    const { draggableId, destinationColumnId, sourceColumnId } = result
+    
+    if (destinationColumnId === sourceColumnId) {
       return
     }
 
     const leadId = parseInt(draggableId)
-    const newStatus = destination.droppableId as CloserKanbanStatus
+    const newStatus = destinationColumnId as CloserKanbanStatus
     const lead = leads.find(l => l.id === leadId)
     if (!lead) return
 
     // Interceptações de Status Especiais (Salva otimista temporariamente e abre modal)
-    if (newStatus === 'GANHOU' || newStatus === 'PERDEU' || (newStatus === 'NO_SHOW' && lead.status_closer !== 'NO_SHOW')) {
+    if (newStatus === 'GANHOU' || newStatus === 'PERDEU' || (newStatus === 'NO_SHOW' && (lead.status_closer as string) !== 'NO_SHOW')) {
       setActionLead(lead)
       setActionType(newStatus as any)
       return // Espera o modal
@@ -104,7 +104,7 @@ export default function CloserKanbanPage() {
 
     // Status Comuns - Salva otimista
     // Se estiver saindo do GANHOU, limpa os dados financeiros
-    const outOfGanhou = lead.status_closer === 'GANHOU' && newStatus !== 'GANHOU'
+    const outOfGanhou = (lead.status_closer as string) === 'GANHOU' && (newStatus as string) !== 'GANHOU'
 
     setLeads(prev => prev.map(l => l.id === leadId ? { 
       ...l, 
@@ -112,7 +112,7 @@ export default function CloserKanbanPage() {
       valor_venda: outOfGanhou ? null : l.valor_venda,
       tipo_venda: outOfGanhou ? null : l.tipo_venda,
       meses_contrato: outOfGanhou ? null : l.meses_contrato,
-      motivo_perda: (lead.status_closer === 'PERDEU' && newStatus !== 'PERDEU') ? null : l.motivo_perda
+      motivo_perda: ((lead.status_closer as string) === 'PERDEU' && (newStatus as string) !== 'PERDEU') ? null : l.motivo_perda
     } : l))
 
     try {
@@ -248,14 +248,14 @@ export default function CloserKanbanPage() {
           </div>
         </header>
 
-        <main className="flex-1 min-h-0 p-6 overflow-x-auto">
+        <main className="flex-1 min-h-0 p-6 overflow-auto">
           {error && (
             <div className="mb-4 bg-red-50 text-red-700 p-3 rounded-xl border border-red-200">
               {error}
             </div>
           )}
 
-          <div className="h-full rounded-2xl bg-white/50 border border-gray-200 p-4 min-w-[1200px]">
+          <div className="pb-8">
             <DraggableKanbanBoard onDragEnd={handleDragEnd}>
               <DraggableKanbanColumn
                 id="REUNIAO_MARCADA"

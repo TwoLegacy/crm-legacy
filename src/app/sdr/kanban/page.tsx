@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { DropResult } from '@hello-pangea/dnd'
 import { createClient } from '@/lib/supabaseClient'
 import { getLeadsBySdr, updateLeadStatus, unassignLead, getAllSdrs, Lead, Profile } from '@/lib/leads'
 import { useAuth } from '@/contexts/AuthContext'
@@ -152,15 +151,15 @@ export default function SdrKanbanPage() {
   const totalNaoRespondeu = leads.filter(l => l.status_sdr === 'NAO_RESPONDEU').length
   const totalNoShows = leads.filter(l => l.status_sdr === 'NO_SHOW').length
 
-  const handleDragEnd = async (result: DropResult) => {
-    const { destination, source, draggableId } = result
+  const handleDragEnd = async (result: { draggableId: string; sourceColumnId: string; destinationColumnId: string }) => {
+    const { draggableId, destinationColumnId, sourceColumnId } = result
 
-    if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
+    if (destinationColumnId === sourceColumnId) {
       return
     }
 
     const leadId = parseInt(draggableId)
-    const newStatus = destination.droppableId as 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW'
+    const newStatus = destinationColumnId as 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW'
 
     if (newStatus === 'ENCAMINHADO_REUNIAO') {
       const lead = leads.find(l => l.id === leadId)
@@ -386,7 +385,7 @@ export default function SdrKanbanPage() {
           )}
 
           {/* Container do Kanban - Scroll horizontal no mobile */}
-          <div className="h-full rounded-2xl bg-white/50 border border-gray-200 p-4 min-w-[768px] md:min-w-0">
+          <div className="pb-8">
             <DraggableKanbanBoard onDragEnd={handleDragEnd}>
               <DraggableKanbanColumn
                 id="MEUS_LEADS"

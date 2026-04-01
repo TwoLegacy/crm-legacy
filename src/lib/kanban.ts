@@ -139,9 +139,10 @@ function faturamentoParaValor(faturamento: string): number {
 
   // Mais de X
   if (normalized.includes('maisde')) {
-    if (normalized.includes('100000')) return 150000;
-    if (normalized.includes('300000')) return 400000;
+    if (normalized.includes('800000')) return 1000000; // Recém adicionado para IA
     if (normalized.includes('500000')) return 600000;
+    if (normalized.includes('300000')) return 400000;
+    if (normalized.includes('100000')) return 150000;
     if (normalized.includes('2mm')) return 3000000;
   }
   
@@ -174,44 +175,71 @@ export function obterQualificacaoEColuna(
   
   let qualificacao: Qualificacao = 'RUIM';
 
+  const isIA = fonte?.toLowerCase() === 'ia';
+
   // Lógica Baseada no Tipo de Hospedagem
   if (tipo === 'Cabanas e Chalés' || tipo === 'Outros') {
-    // Regras:
-    // < 15k: Comunidade
-    // 15k-30k: Nível 1 (RUIM)
-    // 30k-50k: Nível 2 (MEDIO)
-    // 50k-100k: Nível 3 (QUALIFICADO)
-    // > 100k: Nível 4 (ULTRA)
-    
-    if (valorFaturamento < 15000) qualificacao = 'COMUNIDADE';
-    else if (valorFaturamento < 30000) qualificacao = 'RUIM';
-    else if (valorFaturamento < 50000) qualificacao = 'MEDIO';
-    else if (valorFaturamento < 100000) qualificacao = 'QUALIFICADO';
-    else qualificacao = 'ULTRA';
+    if (isIA) {
+      // IA - Cabanas:
+      // < 20k: E
+      // 20-50k: D
+      // 50-100k: C
+      // 100-300k: B
+      // > 300k: A
+      if (valorFaturamento < 20000) qualificacao = 'COMUNIDADE';
+      else if (valorFaturamento < 50000) qualificacao = 'RUIM';
+      else if (valorFaturamento < 100000) qualificacao = 'MEDIO';
+      else if (valorFaturamento < 300000) qualificacao = 'QUALIFICADO';
+      else qualificacao = 'ULTRA';
+    } else {
+      // Hospedagem - Cabanas:
+      // < 15k: E
+      // 15k-30k: D
+      // 30k-50k: C
+      // 50k-100k: B
+      // > 100k: A
+      if (valorFaturamento < 15000) qualificacao = 'COMUNIDADE';
+      else if (valorFaturamento < 30000) qualificacao = 'RUIM';
+      else if (valorFaturamento < 50000) qualificacao = 'MEDIO';
+      else if (valorFaturamento < 100000) qualificacao = 'QUALIFICADO';
+      else qualificacao = 'ULTRA';
+    }
 
   } else if (tipo === 'Hotel, Pousada ou Resort') {
-    // Regras:
-    // < 50k: Nível 1 (RUIM)
-    // 50k-100k: Nível 2 (MEDIO)
-    // 100k-300k: Nível 3 (QUALIFICADO)
-    // > 300k: Nível 4 (ULTRA)
-    
-    if (valorFaturamento < 50000) qualificacao = 'RUIM';
-    else if (valorFaturamento < 100000) qualificacao = 'MEDIO';
-    else if (valorFaturamento < 300000) qualificacao = 'QUALIFICADO';
-    else qualificacao = 'ULTRA';
+    if (isIA) {
+      // IA - Hotel:
+      // < 30k: E
+      // 30-50k: D
+      // 50-100k: C
+      // 100-300k: B
+      // 300-800k+: A
+      if (valorFaturamento < 30000) qualificacao = 'COMUNIDADE';
+      else if (valorFaturamento < 50000) qualificacao = 'RUIM';
+      else if (valorFaturamento < 100000) qualificacao = 'MEDIO';
+      else if (valorFaturamento < 300000) qualificacao = 'QUALIFICADO';
+      else qualificacao = 'ULTRA';
+    } else {
+      // Hospedagem - Hotel:
+      // < 50k: E
+      // 50k-100k: D
+      // 100k-300k: C
+      // 300k-800k: B
+      // > 800k: A (TCV/MRR etc)
+      if (valorFaturamento < 50000) qualificacao = 'COMUNIDADE';
+      else if (valorFaturamento < 100000) qualificacao = 'RUIM';
+      else if (valorFaturamento < 300000) qualificacao = 'MEDIO';
+      else if (valorFaturamento < 800000) qualificacao = 'QUALIFICADO';
+      else qualificacao = 'ULTRA';
+    }
     
   } else {
     // Fallback para tipos desconhecidos ou vazios (Mantém lógica original)
     qualificacao = FATURAMENTO_QUALIFICACAO[faturamento] || 'RUIM';
     
     // Regra original: < 5k -> Comunidade
-    if (faturamento === 'Menos de R$ 5 mil') {
+    if (faturamento === 'Menos de R$ 5 mil' || valorFaturamento < 5000) {
       qualificacao = 'COMUNIDADE';
     }
-    
-    // Bonus original: Hotel/Pousada + Medio -> Qualificado (Mantido apenas no fluxo legado se necessário, mas logicamente 'tipo' cairia no if acima se fosse Hotel)
-    // Então aqui é só para tipos realmente estranhos.
   }
 
   // Override final de fonte Comunidade (mantém prioridade absoluta)

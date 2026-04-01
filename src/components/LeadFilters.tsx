@@ -260,6 +260,20 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
               QUIZ
             </button>
             <button
+              onClick={() => handleFonteChange('ia')}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                fonte === 'ia'
+                  ? 'bg-indigo-700 text-white shadow-md shadow-indigo-200'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              }`}
+              title="Filtrar leads de IA"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              IA
+            </button>
+            <button
               onClick={() => {
                 const newValue = !apenasDuplicados;
                 setApenasDuplicados(newValue);

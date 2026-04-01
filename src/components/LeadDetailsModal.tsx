@@ -302,50 +302,88 @@ export default function LeadDetailsModal({
             <div className="bg-gray-50 rounded-xl p-4 space-y-3">
               {/* Nome da hospedagem - leads do site */}
               {lead.nome_hospedagem && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Nome do espaço</span>
-                  <span className="text-sm font-medium text-gray-900">{lead.nome_hospedagem}</span>
+                <div className="flex justify-between items-center text-gray-900 font-medium">
+                  <span className="text-sm text-gray-500 font-normal">Nome do espaço</span>
+                  <span className="text-sm">{lead.nome_hospedagem}</span>
                 </div>
               )}
               
               {tipoHospedagemDisplay && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Tipo de espaço</span>
-                  <span className="text-sm font-medium text-gray-900">{tipoHospedagemDisplay}</span>
+                <div className="flex justify-between items-center text-gray-900 font-medium">
+                  <span className="text-sm text-gray-500 font-normal">Tipo de espaço</span>
+                  <span className="text-sm">{tipoHospedagemDisplay}</span>
                 </div>
               )}
               
               {lead.qtd_quartos_hospedagens && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Quantidade de quartos</span>
-                  <span className="text-sm font-medium text-gray-900">{lead.qtd_quartos_hospedagens}</span>
+                <div className="flex justify-between items-center text-gray-900 font-medium">
+                  <span className="text-sm text-gray-500 font-normal">Quantidade de quartos</span>
+                  <span className="text-sm">{lead.qtd_quartos_hospedagens}</span>
                 </div>
               )}
               
               {lead.faturamento_medio && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Faturamento médio</span>
-                  <span className="text-sm font-medium text-gray-900">{lead.faturamento_medio}</span>
+                <div className="flex justify-between items-center text-gray-900 font-medium">
+                  <span className="text-sm text-gray-500 font-normal">Faturamento médio</span>
+                  <span className="text-sm">{lead.faturamento_medio}</span>
                 </div>
               )}
               
               {/* Investimento em marketing - leads do site */}
               {lead.investimento_mkt && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Investimento em marketing</span>
-                  <span className="text-sm font-medium text-gray-900">{lead.investimento_mkt}</span>
+                <div className="flex justify-between items-center text-gray-900 font-medium">
+                  <span className="text-sm text-gray-500 font-normal">Investimento em marketing</span>
+                  <span className="text-sm">{lead.investimento_mkt}</span>
                 </div>
               )}
 
               {/* Valor da diária - leads VSL */}
               {lead.fonte?.toLowerCase() === 'vsl' && lead.valor_diaria && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Valor da diária</span>
-                  <span className="text-sm font-medium text-gray-900">R$ {lead.valor_diaria}</span>
+                <div className="flex justify-between items-center text-gray-900 font-medium">
+                  <span className="text-sm text-gray-500 font-normal">Valor da diária</span>
+                  <span className="text-sm">R$ {lead.valor_diaria}</span>
                 </div>
               )}
             </div>
           </section>
+
+          {/* Novos Campos: IA e Prioridades */}
+          {(lead.prioridade || lead.cargo_atual || lead.nome_empresa || lead.budget) && (
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Informações Adicionais
+              </h3>
+              <div className="bg-indigo-50/50 rounded-xl p-4 space-y-3 border border-indigo-100/50">
+                {lead.prioridade && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-indigo-900/60">Prioridade</span>
+                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">{lead.prioridade}</span>
+                  </div>
+                )}
+                {lead.cargo_atual && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-indigo-900/60">Cargo Atual</span>
+                    <span className="text-sm font-medium text-indigo-900">{lead.cargo_atual}</span>
+                  </div>
+                )}
+                {lead.nome_empresa && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-indigo-900/60">Nome da Empresa</span>
+                    <span className="text-sm font-medium text-indigo-900">{lead.nome_empresa}</span>
+                  </div>
+                )}
+                {lead.budget && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-indigo-900/60">Budget</span>
+                    <span className="text-sm font-bold text-emerald-600">{lead.budget}</span>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* Campos específicos de Comunidade */}
           {((lead.fonte?.toLowerCase() === 'comunidade') || isComunidade || lead.maior_desafio) && (

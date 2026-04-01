@@ -30,8 +30,12 @@ export interface Lead {
   owner_closer_id: string | null
   status_sdr: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW' | null
   status_closer: 'REUNIAO_MARCADA' | 'NO_SHOW' | 'ACOMPANHAMENTO' | 'FECHAMENTO' | 'GANHOU' | 'PERDEU' | null
-  fonte: 'quiz' | 'comunidade' | 'site' | 'vsl' | null
+  fonte: 'quiz' | 'comunidade' | 'site' | 'vsl' | 'ia' | null
   origem: string | null
+  cargo_atual: string | null
+  prioridade: string | null
+  budget: string | null
+  nome_empresa: string | null
   observacoes: string | null
   motivo_perda: string | null
   valor_venda: number | null
