@@ -96,15 +96,18 @@ export default function CloserKanbanPage() {
     if (!lead) return
 
     // Interceptações de Status Especiais (Salva otimista temporariamente e abre modal)
-    if (newStatus === 'GANHOU' || newStatus === 'PERDEU' || (newStatus === 'NO_SHOW' && (lead.status_closer as string) !== 'NO_SHOW')) {
+    const currentStatusCloser = lead.status_closer as any
+    const requestedStatus = newStatus as any
+
+    if (requestedStatus === 'GANHOU' || requestedStatus === 'PERDEU' || (requestedStatus === 'NO_SHOW' && currentStatusCloser !== 'NO_SHOW')) {
       setActionLead(lead)
-      setActionType(newStatus as any)
+      setActionType(requestedStatus)
       return // Espera o modal
     }
 
     // Status Comuns - Salva otimista
     // Se estiver saindo do GANHOU, limpa os dados financeiros
-    const outOfGanhou = (lead.status_closer as string) === 'GANHOU' && (newStatus as string) !== 'GANHOU'
+    const outOfGanhou = currentStatusCloser === 'GANHOU' && requestedStatus !== 'GANHOU'
 
     setLeads(prev => prev.map(l => l.id === leadId ? { 
       ...l, 
@@ -112,7 +115,7 @@ export default function CloserKanbanPage() {
       valor_venda: outOfGanhou ? null : l.valor_venda,
       tipo_venda: outOfGanhou ? null : l.tipo_venda,
       meses_contrato: outOfGanhou ? null : l.meses_contrato,
-      motivo_perda: ((lead.status_closer as string) === 'PERDEU' && (newStatus as string) !== 'PERDEU') ? null : l.motivo_perda
+      motivo_perda: (currentStatusCloser === 'PERDEU' && requestedStatus !== 'PERDEU') ? null : l.motivo_perda
     } : l))
 
     try {
