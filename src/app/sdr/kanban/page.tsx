@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabaseClient'
 import { getLeadsBySdr, updateLeadStatus, unassignLead, getAllSdrs, Lead, Profile } from '@/lib/leads'
+import { revertTransferFromFunnel } from '@/lib/outbound'
 import { useAuth } from '@/contexts/AuthContext'
 import { DraggableKanbanBoard, DraggableKanbanColumn } from '@/components/DraggableKanban'
 import Sidebar from '@/components/Sidebar'
@@ -99,13 +100,22 @@ export default function SdrKanbanPage() {
   }, [leads, filters])
 
   const handleDevolver = async (leadId: number) => {
+    // Busca o lead para checar se é outbound
+    const lead = leads.find(l => l.id === leadId)
+    
     // Remove o lead da lista local imediatamente para feedback visual
     setLeads(prev => prev.filter(l => l.id !== leadId))
     
     try {
-      await unassignLead(leadId)
-    } catch (err) {
-      console.error('Erro ao devolver lead:', err)
+      if (lead?.canal_origem === 'outbound') {
+        // Lead outbound: reverte a transferência (volta pra lista de prospecção)
+        await revertTransferFromFunnel(leadId)
+      } else {
+        // Lead inbound: devolve para fila geral
+        await unassignLead(leadId)
+      }
+    } catch (err: any) {
+      console.error('Erro ao devolver lead:', err.message || err)
       // Se der erro, recarrega a lista para garantir consistência
       if (profile) {
         const leadsData = await getLeadsBySdr(profile.id)

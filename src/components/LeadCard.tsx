@@ -247,6 +247,17 @@ export default function LeadCard({
                 Obs
               </span>
             )}
+            {lead.canal_origem === 'outbound' && (
+              <span
+                className="px-2 py-0.5 text-[10px] font-bold rounded uppercase text-white flex items-center gap-1"
+                style={{ backgroundColor: isIA ? '#EA6C0A' : '#F97316' }}
+              >
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+                Outbound
+              </span>
+            )}
             {lead.is_duplicado && (
               <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-100 text-red-700 flex items-center gap-1 border border-red-200">
                 <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
