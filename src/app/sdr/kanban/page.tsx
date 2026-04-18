@@ -134,6 +134,10 @@ export default function SdrKanbanPage() {
     .filter(l => l.status_sdr === 'MEUS_LEADS')
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 
+  const prospectados = filteredLeads
+    .filter(l => l.status_sdr === 'PROSPECTADOS')
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+
   const emQualificacao = filteredLeads
     .filter(l => l.status_sdr === 'QUALIFICACAO')
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
@@ -154,6 +158,7 @@ export default function SdrKanbanPage() {
 
   // Contadores
   const totalMeusLeads = leads.filter(l => l.status_sdr === 'MEUS_LEADS').length
+  const totalProspectados = leads.filter(l => l.status_sdr === 'PROSPECTADOS').length
   const totalQualificacao = leads.filter(l => l.status_sdr === 'QUALIFICACAO').length
   const totalPertoReuniao = leads.filter(l => l.status_sdr === 'PERTO_REUNIAO').length
   const totalEncaminhados = leads.filter(l => l.status_sdr === 'ENCAMINHADO_REUNIAO').length
@@ -169,7 +174,7 @@ export default function SdrKanbanPage() {
     }
 
     const leadId = parseInt(draggableId)
-    const newStatus = destinationColumnId as 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW'
+    const newStatus = destinationColumnId as 'MEUS_LEADS' | 'PROSPECTADOS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW'
 
     if (newStatus === 'ENCAMINHADO_REUNIAO') {
       const lead = leads.find(l => l.id === leadId)
@@ -207,9 +212,10 @@ export default function SdrKanbanPage() {
     const lead = leads.find(l => l.id === leadId)
     if (!lead) return
 
-    let newStatus: 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | null = null
+    let newStatus: 'PROSPECTADOS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | null = null
 
-    if (lead.status_sdr === 'MEUS_LEADS') newStatus = 'QUALIFICACAO'
+    if (lead.status_sdr === 'MEUS_LEADS') newStatus = 'PROSPECTADOS'
+    else if (lead.status_sdr === 'PROSPECTADOS') newStatus = 'QUALIFICACAO'
     else if (lead.status_sdr === 'QUALIFICACAO') newStatus = 'PERTO_REUNIAO'
     else if (lead.status_sdr === 'PERTO_REUNIAO') newStatus = 'ENCAMINHADO_REUNIAO'
 
@@ -233,11 +239,12 @@ export default function SdrKanbanPage() {
     const lead = leads.find(l => l.id === leadId)
     if (!lead) return
 
-    let newStatus: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | null = null
+    let newStatus: 'MEUS_LEADS' | 'PROSPECTADOS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | null = null
 
     if (lead.status_sdr === 'ENCAMINHADO_REUNIAO') newStatus = 'PERTO_REUNIAO'
     else if (lead.status_sdr === 'PERTO_REUNIAO') newStatus = 'QUALIFICACAO'
-    else if (lead.status_sdr === 'QUALIFICACAO') newStatus = 'MEUS_LEADS'
+    else if (lead.status_sdr === 'QUALIFICACAO') newStatus = 'PROSPECTADOS'
+    else if (lead.status_sdr === 'PROSPECTADOS') newStatus = 'MEUS_LEADS'
 
     if (newStatus) {
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status_sdr: newStatus } : l))
@@ -314,6 +321,11 @@ export default function SdrKanbanPage() {
               <div className="text-center">
                 <p className="text-xl md:text-2xl font-bold text-gray-700">{totalMeusLeads}</p>
                 <p className="text-xs text-gray-500">Aguardando</p>
+              </div>
+              <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
+              <div className="text-center">
+                <p className="text-xl md:text-2xl font-bold text-purple-600">{totalProspectados}</p>
+                <p className="text-xs text-gray-500">Prospectados</p>
               </div>
               <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
               <div className="text-center">
@@ -404,6 +416,15 @@ export default function SdrKanbanPage() {
                 cor="#4b5563"
                 onEncaminhar={handleAdvance}
                 onDevolver={handleDevolver}
+                onDeletar={handleRemoveFromList}
+              />
+              <DraggableKanbanColumn
+                id="PROSPECTADOS"
+                titulo="Prospectados"
+                leads={prospectados}
+                cor="#8b5cf6"
+                onEncaminhar={handleAdvance}
+                onVoltar={handleRetreat}
                 onDeletar={handleRemoveFromList}
               />
               <DraggableKanbanColumn

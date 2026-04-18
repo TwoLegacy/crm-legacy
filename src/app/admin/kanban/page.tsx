@@ -88,17 +88,21 @@ export default function AdminKanbanPage() {
     fetchData()
   }, [user, profile, authLoading, router])
 
+  const filteredBaseLeads = useMemo(() => {
+    return filterLeads(allLeads, filters)
+  }, [allLeads, filters])
+
   const getFilteredLeads = useMemo(() => {
-    let leads = allLeads
+    let leads = filteredBaseLeads
     
     if (viewMode === 'nao_atribuidos') {
-      leads = leads.filter(l => !l.owner_sdr_id)
+      return leads.filter(l => !l.owner_sdr_id)
     } else if (viewMode !== 'todos') {
-      leads = leads.filter(l => l.owner_sdr_id === viewMode)
+      return leads.filter(l => l.owner_sdr_id === viewMode)
     }
     
-    return filterLeads(leads, filters)
-  }, [allLeads, viewMode, filters])
+    return leads
+  }, [filteredBaseLeads, viewMode])
 
   const leadsAgrupados = agruparLeadsPorColuna(getFilteredLeads)
 
@@ -194,8 +198,8 @@ export default function AdminKanbanPage() {
     }
   }
 
-  const totalLeads = allLeads.length
-  const naoAtribuidos = allLeads.filter(l => !l.owner_sdr_id).length
+  const totalLeads = filteredBaseLeads.length
+  const naoAtribuidos = filteredBaseLeads.filter(l => !l.owner_sdr_id).length
   const hasActiveFilters = filters.searchTerm || filters.dateFrom || filters.dateTo || filters.tipoHospedagem || filters.origem || filters.fonte || filters.classificacao
 
   if (loadingKanban || authLoading) {
@@ -296,7 +300,7 @@ export default function AdminKanbanPage() {
               <div className="w-px h-6 bg-gray-200 mx-1"></div>
               
               {sdrs.map(sdr => {
-                const sdrLeadsCount = allLeads.filter(l => l.owner_sdr_id === sdr.id).length
+                const sdrLeadsCount = filteredBaseLeads.filter(l => l.owner_sdr_id === sdr.id).length
                 return (
                   <button
                     key={sdr.id}

@@ -4,20 +4,19 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Sidebar from '@/components/Sidebar'
-import ImportOutboundModal from '@/components/ImportOutboundModal'
-import AddOutboundLeadModal from '@/components/AddOutboundLeadModal'
-import LeadOutboundDetailModal from '@/components/LeadOutboundDetailModal'
-import TransferToFunnelModal from '@/components/TransferToFunnelModal'
+import ImportRemarketingModal from '@/components/ImportRemarketingModal'
+import AddRemarketingLeadModal from '@/components/AddRemarketingLeadModal'
+import LeadRemarketingDetailModal from '@/components/LeadRemarketingDetailModal'
+import TransferToRemarketingFunnelModal from '@/components/TransferToRemarketingFunnelModal'
 import {
-  OutboundLead,
-  StatusOutbound,
-  FonteOutbound,
-  getOutboundLeads,
+  RemarketingLead,
+  StatusRemarketing,
+  FonteRemarketing,
+  getRemarketingLeads,
   markAsProspected,
   undoProspected,
-  transferToFunnel,
-  getOutboundCounts,
-} from '@/lib/outbound'
+  getRemarketingCounts,
+} from '@/lib/remarketing'
 
 // =====================================================
 // CONSTANTES
@@ -25,7 +24,7 @@ import {
 
 const PAGE_SIZE = 30
 
-const FONTE_LABELS: Record<FonteOutbound, { label: string; color: string }> = {
+const FONTE_LABELS: Record<FonteRemarketing, { label: string; color: string }> = {
   google_maps: { label: 'Maps', color: 'bg-red-100 text-red-700' },
   indicacao: { label: 'Indicação', color: 'bg-purple-100 text-purple-700' },
   linkedin: { label: 'LinkedIn', color: 'bg-blue-100 text-blue-700' },
@@ -36,7 +35,7 @@ const FONTE_LABELS: Record<FonteOutbound, { label: string; color: string }> = {
 // CARD COMPONENT
 // =====================================================
 
-function OutboundCard({
+function RemarketingCard({
   lead,
   status,
   onProspectar,
@@ -45,12 +44,12 @@ function OutboundCard({
   onCardClick,
   loading,
 }: {
-  lead: OutboundLead
-  status: StatusOutbound
+  lead: RemarketingLead
+  status: StatusRemarketing
   onProspectar: (id: number) => void
   onEnviarFunil: (id: number) => void
   onDesfazer: (id: number) => void
-  onCardClick: (lead: OutboundLead) => void
+  onCardClick: (lead: RemarketingLead) => void
   loading: boolean
 }) {
   const whatsappLink = `https://wa.me/55${lead.whatsapp.replace(/\D/g, '')}`
@@ -66,8 +65,8 @@ function OutboundCard({
             <p className="text-xs text-gray-500 truncate">{lead.nome}</p>
           )}
         </div>
-        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ml-2 ${FONTE_LABELS[lead.fonte_outbound]?.color || 'bg-gray-100 text-gray-600'}`}>
-          {FONTE_LABELS[lead.fonte_outbound]?.label || lead.fonte_outbound}
+        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ml-2 ${FONTE_LABELS[lead.fonte_remarketing]?.color || 'bg-gray-100 text-gray-600'}`}>
+          {FONTE_LABELS[lead.fonte_remarketing]?.label || lead.fonte_remarketing}
         </span>
       </div>
 
@@ -152,7 +151,7 @@ function OutboundCard({
 // COLUMN COMPONENT (com scroll infinito)
 // =====================================================
 
-function OutboundColumn({
+function RemarketingColumn({
   title,
   status,
   color,
@@ -169,9 +168,9 @@ function OutboundColumn({
   headerAction,
 }: {
   title: string
-  status: StatusOutbound
+  status: StatusRemarketing
   color: string
-  leads: OutboundLead[]
+  leads: RemarketingLead[]
   totalCount: number
   loading: boolean
   hasMore: boolean
@@ -179,7 +178,7 @@ function OutboundColumn({
   onProspectar: (id: number) => void
   onEnviarFunil: (id: number) => void
   onDesfazer: (id: number) => void
-  onCardClick: (lead: OutboundLead) => void
+  onCardClick: (lead: RemarketingLead) => void
   actionLoading: boolean
   headerAction?: React.ReactNode
 }) {
@@ -232,7 +231,7 @@ function OutboundColumn({
         ) : (
           <>
             {leads.map((lead) => (
-              <OutboundCard
+              <RemarketingCard
                 key={lead.id}
                 lead={lead}
                 status={status}
@@ -268,13 +267,13 @@ function OutboundColumn({
 // PAGE COMPONENT
 // =====================================================
 
-export default function OutboundPage() {
+export default function RemarketingPage() {
   const router = useRouter()
   const { user, profile, loading: authLoading } = useAuth()
 
   // State: listas
-  const [paraProspectar, setParaProspectar] = useState<OutboundLead[]>([])
-  const [prospectados, setProspectados] = useState<OutboundLead[]>([])
+  const [paraProspectar, setParaProspectar] = useState<RemarketingLead[]>([])
+  const [prospectados, setProspectados] = useState<RemarketingLead[]>([])
   const [countPP, setCountPP] = useState(0)
   const [countP, setCountP] = useState(0)
   const [pagePP, setPagePP] = useState(0)
@@ -289,14 +288,14 @@ export default function OutboundPage() {
   const [search, setSearch] = useState('')
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [addModalOpen, setAddModalOpen] = useState(false)
-  const [detailLead, setDetailLead] = useState<OutboundLead | null>(null)
-  const [transferLead, setTransferLead] = useState<OutboundLead | null>(null)
+  const [detailLead, setDetailLead] = useState<RemarketingLead | null>(null)
+  const [transferLead, setTransferLead] = useState<RemarketingLead | null>(null)
 
   const isAdmin = profile?.role === 'admin'
 
   // Fetch dados
   const fetchColumn = useCallback(async (
-    status: StatusOutbound,
+    status: StatusRemarketing,
     page: number,
     append: boolean = false
   ) => {
@@ -309,7 +308,7 @@ export default function OutboundPage() {
 
     setLoading(true)
     try {
-      const result = await getOutboundLeads({
+      const result = await getRemarketingLeads({
         status,
         sdrId: profile.id,
         isAdmin: isAdmin || false,
@@ -372,27 +371,27 @@ export default function OutboundPage() {
   }, [pageP, fetchColumn])
 
   // Ações
-  const handleProspectar = async (outboundId: number) => {
+  const handleProspectar = async (remarketingId: number) => {
     if (!profile) return
     setActionLoading(true)
 
     // Optimistic update: move da coluna 1 para 2
-    const lead = paraProspectar.find(l => l.id === outboundId)
+    const lead = paraProspectar.find(l => l.id === remarketingId)
     if (lead) {
       const updated = {
         ...lead,
-        status_outbound: 'PROSPECTADO' as StatusOutbound,
+        status_remarketing: 'PROSPECTADO' as StatusRemarketing,
         sdr_id: profile.id,
         prospectado_at: new Date().toISOString(),
       }
-      setParaProspectar(prev => prev.filter(l => l.id !== outboundId))
+      setParaProspectar(prev => prev.filter(l => l.id !== remarketingId))
       setProspectados(prev => [updated, ...prev])
       setCountPP(prev => prev - 1)
       setCountP(prev => prev + 1)
     }
 
     try {
-      await markAsProspected(outboundId, profile.id)
+      await markAsProspected(remarketingId, profile.id)
     } catch {
       // Rollback: recarrega ambas
       fetchColumn('PARA_PROSPECTAR', 0)
@@ -402,39 +401,39 @@ export default function OutboundPage() {
     }
   }
 
-  const handleEnviarFunil = (outboundId: number) => {
-    const lead = prospectados.find(l => l.id === outboundId)
+  const handleEnviarFunil = (remarketingId: number) => {
+    const lead = prospectados.find(l => l.id === remarketingId)
     if (lead) setTransferLead(lead)
   }
 
-  const handleTransferSuccess = (outboundId: number) => {
-    setProspectados(prev => prev.filter(l => l.id !== outboundId))
+  const handleTransferSuccess = (remarketingId: number) => {
+    setProspectados(prev => prev.filter(l => l.id !== remarketingId))
     setCountP(prev => prev - 1)
     setTransferLead(null)
   }
 
   // Desfazer prospecção (Ctrl+Z)
-  const handleDesfazer = async (outboundId: number) => {
+  const handleDesfazer = async (remarketingId: number) => {
     if (!profile) return
     setActionLoading(true)
 
     // Optimistic: move de Prospectados de volta para Para Prospectar
-    const lead = prospectados.find(l => l.id === outboundId)
+    const lead = prospectados.find(l => l.id === remarketingId)
     if (lead) {
       const reverted = {
         ...lead,
-        status_outbound: 'PARA_PROSPECTAR' as StatusOutbound,
+        status_remarketing: 'PARA_PROSPECTAR' as StatusRemarketing,
         sdr_id: null,
         prospectado_at: null,
       }
-      setProspectados(prev => prev.filter(l => l.id !== outboundId))
+      setProspectados(prev => prev.filter(l => l.id !== remarketingId))
       setParaProspectar(prev => [...prev, reverted])
       setCountP(prev => prev - 1)
       setCountPP(prev => prev + 1)
     }
 
     try {
-      await undoProspected(outboundId)
+      await undoProspected(remarketingId)
     } catch {
       // Rollback
       fetchColumn('PARA_PROSPECTAR', 0)
@@ -462,8 +461,8 @@ export default function OutboundPage() {
         <div className="px-6 py-4 border-b border-gray-100 bg-white flex-shrink-0">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Outbound</h1>
-              <p className="text-sm text-gray-500">Prospecção ativa de leads</p>
+              <h1 className="text-2xl font-bold text-gray-900">Remarketing</h1>
+              <p className="text-sm text-gray-500">Prospecção de remarketing de leads</p>
             </div>
             <div className="flex items-center gap-2">
               {isAdmin && (
@@ -497,7 +496,7 @@ export default function OutboundPage() {
 
         {/* Colunas */}
         <div className="flex-1 flex gap-4 p-4 min-h-0 overflow-hidden">
-          <OutboundColumn
+          <RemarketingColumn
             title="Para Prospectar"
             status="PARA_PROSPECTAR"
             color="#2563EB"
@@ -523,7 +522,7 @@ export default function OutboundPage() {
               </button>
             }
           />
-          <OutboundColumn
+          <RemarketingColumn
             title="Prospectados"
             status="PROSPECTADO"
             color="#16A34A"
@@ -542,7 +541,7 @@ export default function OutboundPage() {
       </div>
 
       {/* Modal de Importação */}
-      <ImportOutboundModal
+      <ImportRemarketingModal
         isOpen={importModalOpen}
         onClose={() => setImportModalOpen(false)}
         onSuccess={() => {
@@ -554,7 +553,7 @@ export default function OutboundPage() {
       />
 
       {/* Modal de Cadastro Manual */}
-      <AddOutboundLeadModal
+      <AddRemarketingLeadModal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         onSuccess={(newLead) => {
@@ -565,7 +564,7 @@ export default function OutboundPage() {
       />
 
       {/* Modal de Detalhes */}
-      <LeadOutboundDetailModal
+      <LeadRemarketingDetailModal
         lead={detailLead}
         onClose={() => setDetailLead(null)}
         onUpdate={(updated) => {
@@ -576,7 +575,7 @@ export default function OutboundPage() {
       />
 
       {/* Modal de Transferência para Funil */}
-      <TransferToFunnelModal
+      <TransferToRemarketingFunnelModal
         lead={transferLead}
         sdrId={profile.id}
         onClose={() => setTransferLead(null)}

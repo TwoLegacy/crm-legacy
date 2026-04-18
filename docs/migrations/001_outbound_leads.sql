@@ -42,24 +42,24 @@ CREATE INDEX idx_leads_canal ON leads(canal_origem);
 -- 5. Row Level Security
 ALTER TABLE outbound_leads ENABLE ROW LEVEL SECURITY;
 
--- Admin: acesso total
+-- Admin e Marketing: acesso total
 -- SDR: vê apenas seus leads ou leads ainda não atribuídos
 CREATE POLICY "outbound_select_policy" ON outbound_leads
   FOR SELECT USING (
-    auth.uid() IN (SELECT id FROM profiles WHERE role = 'admin')
+    auth.uid() IN (SELECT id FROM profiles WHERE role IN ('admin', 'marketing'))
     OR sdr_id = auth.uid()
     OR sdr_id IS NULL
   );
 
 CREATE POLICY "outbound_insert_policy" ON outbound_leads
   FOR INSERT WITH CHECK (
-    auth.uid() IN (SELECT id FROM profiles WHERE role = 'admin')
+    auth.uid() IN (SELECT id FROM profiles WHERE role IN ('admin', 'marketing'))
     OR created_by = auth.uid()
   );
 
 CREATE POLICY "outbound_update_policy" ON outbound_leads
   FOR UPDATE USING (
-    auth.uid() IN (SELECT id FROM profiles WHERE role = 'admin')
+    auth.uid() IN (SELECT id FROM profiles WHERE role IN ('admin', 'marketing'))
     OR sdr_id = auth.uid()
     OR sdr_id IS NULL
   );

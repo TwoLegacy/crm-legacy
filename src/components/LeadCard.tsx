@@ -351,18 +351,12 @@ export default function LeadCard({
         )}
 
         {/* Informações específicas de IA e Hospedagem */}
-        {(lead.prioridade || lead.cargo_atual || (isIA && lead.nome_empresa) || (!isIA && lead.budget)) && (
+        {(lead.prioridade || (isIA && lead.nome_empresa) || (!isIA && lead.budget)) && (
           <div className={`mb-3 p-2 rounded-lg border flex flex-col gap-1.5 ${isIA ? 'bg-slate-800/50 border-slate-700' : 'bg-gray-50 border-gray-100'}`}>
             {lead.prioridade && (
               <div className="flex items-center justify-between">
                 <span className={`text-[10px] font-bold uppercase ${isIA ? 'text-slate-400' : 'text-gray-500'}`}>Prioridade:</span>
                 <span className={`text-xs font-bold ${isIA ? 'text-indigo-400' : 'text-[#8B0000]'}`}>{lead.prioridade}</span>
-              </div>
-            )}
-            {isIA && lead.cargo_atual && (
-              <div className="flex items-center justify-between">
-                <span className={`text-[10px] font-bold uppercase ${isIA ? 'text-slate-400' : 'text-gray-500'}`}>Cargo:</span>
-                <span className="text-xs font-medium truncate max-w-[120px]">{lead.cargo_atual}</span>
               </div>
             )}
             {isIA && lead.nome_empresa && (

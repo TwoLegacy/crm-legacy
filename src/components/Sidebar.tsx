@@ -61,7 +61,17 @@ export default function Sidebar({ children }: SidebarProps) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.297A1.705 1.705 0 019.289 21c-1.1 0-1.45-.492-2.803-1.492l-4.05-3.001A1.705 1.705 0 012 15.111V6.703c0-.73.473-1.378 1.156-1.637l7.844-2.955V5.882zM15 5.882V19.297A1.705 1.705 0 0016.711 21c1.1 0 1.45-.492 2.803-1.492l4.05-3.001A1.705 1.705 0 0022 15.111V6.703c0-.73-.473-1.378-1.156-1.637l-7.844-2.955V5.882z" />
         </svg>
       ),
-      visible: profile?.role === 'admin' || profile?.role === 'marketing',
+      visible: profile?.role === 'admin' || profile?.role === 'marketing' || profile?.role === 'sdr',
+    },
+    {
+      label: 'Remarketing',
+      path: '/remarketing',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      ),
+      visible: profile?.role === 'admin' || profile?.role === 'marketing' || profile?.role === 'sdr',
     },
     {
       label: 'Painel SDR',

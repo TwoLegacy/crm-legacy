@@ -163,10 +163,8 @@ export function obterQualificacaoEColuna(
   faturamentoMedio: string | null | undefined,
   fonte: string | null | undefined = 'quiz'
 ): { qualificacao: Qualificacao; coluna: ColunaGlobal } {
-  // PRIORIDADE 1: Se fonte é comunidade, vai para coluna Comunidade
-  if (fonte && fonte.toLowerCase() === 'comunidade') {
-    return { qualificacao: 'COMUNIDADE', coluna: 'Lead E' };
-  }
+  // A fonte 'comunidade' não tem mais prioridade de rebaixamento automático.
+  // A qualificação seguirá a tabela de faturamento abaixo.
   
   // Normaliza os inputs
   const faturamento = faturamentoMedio?.trim() || '';
@@ -242,10 +240,7 @@ export function obterQualificacaoEColuna(
     }
   }
 
-  // Override final de fonte Comunidade (mantém prioridade absoluta)
-  if (fonte && fonte.toLowerCase() === 'comunidade') {
-    return { qualificacao: 'COMUNIDADE', coluna: 'Lead E' };
-  }
+  // Fim da lógica de qualificação
   
   const coluna = QUALIFICACAO_PARA_COLUNA[qualificacao];
   

@@ -28,12 +28,12 @@ export interface Lead {
   qtd_quartos_hospedagens: string | null
   owner_sdr_id: string | null
   owner_closer_id: string | null
-  status_sdr: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW' | null
+  status_sdr: 'MEUS_LEADS' | 'PROSPECTADOS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW' | null
   status_closer: 'REUNIAO_MARCADA' | 'NO_SHOW' | 'ACOMPANHAMENTO' | 'FECHAMENTO' | 'GANHOU' | 'PERDEU' | null
-  fonte: 'quiz' | 'comunidade' | 'site' | 'vsl' | 'ia' | 'outbound' | null
+  fonte: 'quiz' | 'comunidade' | 'site' | 'vsl' | 'ia' | 'outbound' | 'assessoria' | null
   canal_origem: 'inbound' | 'outbound' | null
   origem: string | null
-  cargo_atual: string | null
+  qtd_contatos: string | null
   prioridade: string | null
   budget: string | null
   nome_empresa: string | null
@@ -130,21 +130,41 @@ export async function getAllLeads(): Promise<Lead[]> {
 
   const supabase = createClient()
   
-  const { data, error } = await supabase
-    .from('leads')
-    .select(`
-      *,
-      closer:profiles!owner_closer_id(name)
-    `)
-    .is('deleted_at', null)
-    .order('updated_at', { ascending: false })
+  let allData: any[] = []
+  let hasMore = true
+  let page = 0
+  const pageSize = 1000
   
-  if (error) {
-    console.error('Erro ao buscar leads:', error)
-    throw error
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('leads')
+      .select(`
+        *,
+        closer:profiles!owner_closer_id(name)
+      `)
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false })
+      .range(page * pageSize, (page + 1) * pageSize - 1)
+    
+    if (error) {
+      console.error('Erro ao buscar leads (página ' + page + '):', error)
+      throw error
+    }
+    
+    if (data && data.length > 0) {
+      allData = [...allData, ...data]
+      if (data.length < pageSize) hasMore = false
+    } else {
+      hasMore = false
+    }
+    
+    page++
+    
+    // Trava de segurança para não explodir a memória (max 10 requisições = 10.000 leads).
+    if (page >= 10) break
   }
   
-  const result = data || []
+  const result = allData || []
   setCache(cacheKey, result)
   return result
 }
@@ -167,6 +187,7 @@ export async function getLeadsBySdr(sdrId: string): Promise<Lead[]> {
     `)
     .eq('owner_sdr_id', sdrId)
     .is('deleted_at', null)
+    .limit(5000)
     .order('updated_at', { ascending: false })
   
   if (error) {
@@ -197,6 +218,7 @@ export async function getLeadsByCloser(closerId: string): Promise<Lead[]> {
     `)
     .eq('owner_closer_id', closerId)
     .is('deleted_at', null)
+    .limit(5000)
     .order('updated_at', { ascending: false })
   
   if (error) {
@@ -365,7 +387,7 @@ export async function deleteLead(leadId: number): Promise<void> {
  */
 export async function updateLeadStatus(
   leadId: number,
-  status: 'MEUS_LEADS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW'
+  status: 'MEUS_LEADS' | 'PROSPECTADOS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW'
 ): Promise<Lead> {
   const supabase = createClient()
   

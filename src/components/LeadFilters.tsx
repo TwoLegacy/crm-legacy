@@ -213,51 +213,17 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
             options={TIPOS_HOSPEDAGEM}
           />
 
-          {/* Filtro de Origem (País) */}
+          {/* Filtros de Base */}
           <div className="flex gap-1">
             <button
-              onClick={() => handleOrigemChange('brasil')}
-              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                origem === 'brasil'
-                  ? 'bg-green-600 text-white ring-2 ring-green-300'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-              }`}
-              title="Filtrar Brasil"
-            >
-              <img src="/flags/br.png" alt="Brasil" className="w-5 h-auto rounded-sm" />
-              <span className="hidden md:inline">BR</span>
-            </button>
-            <button
-              onClick={() => handleOrigemChange('portugal')}
-              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                origem === 'portugal'
-                  ? 'bg-red-600 text-white ring-2 ring-red-300'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-              }`}
-              title="Filtrar Portugal"
-            >
-              <img src="/flags/pt.png" alt="Portugal" className="w-5 h-auto rounded-sm" />
-              <span className="hidden md:inline">PT</span>
-            </button>
-            <button
-              onClick={() => handleFonteChange('vsl')}
+              onClick={() => handleFonteChange('assessoria')}
               className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                fonte === 'vsl'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                fonte === 'assessoria'
+                  ? 'bg-purple-700 text-white shadow-md shadow-purple-200'
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
-              VSL
-            </button>
-            <button
-              onClick={() => handleFonteChange('quiz')}
-              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                fonte === 'quiz'
-                  ? 'bg-slate-500 text-white shadow-md shadow-slate-200'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              QUIZ
+              ASSESSORIA
             </button>
             <button
               onClick={() => handleFonteChange('ia')}
@@ -315,7 +281,7 @@ export default function LeadFilters({ onFilterChange }: LeadFiltersProps) {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
             </svg>
-            <span className="hidden md:inline">Site</span>
+            <span className="hidden md:inline">ASSESSORIA - SITE</span>
           </button>
 
           {/* Botão de data com calendário */}

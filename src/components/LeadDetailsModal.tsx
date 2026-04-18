@@ -348,7 +348,7 @@ export default function LeadDetailsModal({
           </section>
 
           {/* Novos Campos: IA e Prioridades */}
-          {(lead.prioridade || lead.cargo_atual || lead.nome_empresa || lead.budget) && (
+          {(lead.prioridade || lead.qtd_contatos || lead.nome_empresa || lead.budget) && (
             <section>
               <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -363,10 +363,10 @@ export default function LeadDetailsModal({
                     <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">{lead.prioridade}</span>
                   </div>
                 )}
-                {lead.cargo_atual && (
+                {lead.qtd_contatos && (
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-indigo-900/60">Cargo Atual</span>
-                    <span className="text-sm font-medium text-indigo-900">{lead.cargo_atual}</span>
+                    <span className="text-sm text-indigo-900/60">Qtd. de contatos/dia</span>
+                    <span className="text-sm font-medium text-indigo-900">{lead.qtd_contatos}</span>
                   </div>
                 )}
                 {lead.nome_empresa && (
