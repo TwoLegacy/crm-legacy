@@ -300,6 +300,7 @@ export default function AdminDashboardPage() {
   // Dados para gráfico de pizza - Qualificação
   const qualificacaoData = useMemo(() => {
     const counts: Record<ColunaGlobal, number> = {
+      'AGENDADOS DIRETO': 0,
       'Lead D': 0,
       'Lead C': 0,
       'Lead B': 0,
