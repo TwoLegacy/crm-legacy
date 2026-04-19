@@ -56,6 +56,8 @@ export interface Lead {
   valor_diaria: string | null
   // Flag de lead duplicado via webhook
   is_duplicado: boolean | null
+  // Flag indicando se o lead agendou reunião diretamente pelo calendário
+  agendou_direto?: boolean | null
   created_at: string
   updated_at: string
   closer?: any

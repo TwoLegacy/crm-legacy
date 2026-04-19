@@ -5,6 +5,7 @@
 export type Qualificacao = 'RUIM' | 'MEDIO' | 'QUALIFICADO' | 'ULTRA' | 'COMUNIDADE';
 
 export type ColunaGlobal =
+  | 'AGENDADOS DIRETO'
   | 'Lead A'
   | 'Lead B'
   | 'Lead C'
@@ -22,6 +23,7 @@ export const QUALIFICACAO_PARA_COLUNA: Record<Qualificacao, ColunaGlobal> = {
 
 // Ordem das colunas (para renderização)
 export const ORDEM_COLUNAS: ColunaGlobal[] = [
+  'AGENDADOS DIRETO',
   'Lead E',
   'Lead D',
   'Lead C',
@@ -31,6 +33,7 @@ export const ORDEM_COLUNAS: ColunaGlobal[] = [
 
 // Cores para cada coluna
 export const CORES_COLUNAS: Record<ColunaGlobal, string> = {
+  'AGENDADOS DIRETO': '#eab308', // yellow-500
   'Lead D': '#dc2626', // red-600
   'Lead C': '#f59e0b', // amber-500
   'Lead B': '#10b981', // emerald-500
@@ -161,7 +164,8 @@ const TIPOS_HOSPEDAGEM_PREMIUM = [
 export function obterQualificacaoEColuna(
   tipoHospedagem: string | null | undefined,
   faturamentoMedio: string | null | undefined,
-  fonte: string | null | undefined = 'quiz'
+  fonte: string | null | undefined = 'quiz',
+  agendou_direto?: boolean | null
 ): { qualificacao: Qualificacao; coluna: ColunaGlobal } {
   // A fonte 'comunidade' não tem mais prioridade de rebaixamento automático.
   // A qualificação seguirá a tabela de faturamento abaixo.
@@ -242,7 +246,7 @@ export function obterQualificacaoEColuna(
 
   // Fim da lógica de qualificação
   
-  const coluna = QUALIFICACAO_PARA_COLUNA[qualificacao];
+  const coluna = agendou_direto ? 'AGENDADOS DIRETO' : QUALIFICACAO_PARA_COLUNA[qualificacao];
   
   return { qualificacao, coluna };
 }
@@ -260,10 +264,11 @@ export function podeVerQualificacao(
 /**
  * Agrupa leads por coluna do Kanban Global
  */
-export function agruparLeadsPorColuna<T extends { tipo_hospedagem: string | null; faturamento_medio: string | null; fonte?: string | null }>(
+export function agruparLeadsPorColuna<T extends { tipo_hospedagem: string | null; faturamento_medio: string | null; fonte?: string | null; agendou_direto?: boolean | null }>(
   leads: T[]
 ): Record<ColunaGlobal, T[]> {
   const grupos: Record<ColunaGlobal, T[]> = {
+    'AGENDADOS DIRETO': [],
     'Lead D': [],
     'Lead C': [],
     'Lead B': [],
@@ -272,9 +277,11 @@ export function agruparLeadsPorColuna<T extends { tipo_hospedagem: string | null
   };
   
   for (const lead of leads) {
-    const { coluna } = obterQualificacaoEColuna(lead.tipo_hospedagem, lead.faturamento_medio, lead.fonte);
+    const { coluna } = obterQualificacaoEColuna(lead.tipo_hospedagem, lead.faturamento_medio, lead.fonte, lead.agendou_direto);
     if (grupos[coluna]) {
       grupos[coluna].push(lead);
+    } else {
+      grupos[coluna] = [lead];
     }
   }
   
