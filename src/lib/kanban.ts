@@ -129,8 +129,8 @@ function faturamentoParaValor(faturamento: string): number {
 
   // Entre X e Y
   if (normalized.includes('entre')) {
-    if (normalized.includes('5') && normalized.includes('20000')) return 12500;
-    if (normalized.includes('15000') && normalized.includes('30000')) return 22500;
+    if ((normalized.includes('5000') || normalized.includes('5')) && !normalized.includes('50000') && !normalized.includes('500000') && normalized.includes('20000')) return 12500;
+    if (normalized.includes('15000') && Math.max(normalized.indexOf('30000'), 0) >= 0) return 22500;
     if (normalized.includes('20000') && normalized.includes('50000')) return 35000;
     if (normalized.includes('30000') && normalized.includes('50000')) return 40000;
     if (normalized.includes('50000') && normalized.includes('100000')) return 75000;
