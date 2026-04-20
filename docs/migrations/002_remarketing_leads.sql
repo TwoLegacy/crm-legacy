@@ -1,5 +1,5 @@
 -- =====================================================
--- MIGRAÇÃO: Módulo Remarketing - Etapa 1
+-- MIGRAÇÃO: Módulo Remarketing - Etapa 1 (CORRIGIDA)
 -- Two Legacy CRM · Abril 2025
 -- =====================================================
 
@@ -38,8 +38,6 @@ CREATE INDEX idx_remarketing_prospectado
 -- 4. Row Level Security
 ALTER TABLE remarketing_leads ENABLE ROW LEVEL SECURITY;
 
--- Admin e Marketing: acesso total
--- SDR: vê apenas seus leads ou leads ainda não atribuídos
 CREATE POLICY "remarketing_select_policy" ON remarketing_leads
   FOR SELECT USING (
     auth.uid() IN (SELECT id FROM profiles WHERE role IN ('admin', 'marketing'))
@@ -65,32 +63,24 @@ CREATE OR REPLACE FUNCTION transfer_remarketing_to_sdr(
   p_remarketing_id BIGINT,
   p_sdr_id UUID,
   p_fonte TEXT DEFAULT 'remarketing'
-) RETURNS BIGINT AS $$
+) RETURNS BIGINT AS $function$
 DECLARE
   v_lead_id BIGINT;
-  v_remarketing remarketing_leads%ROWTYPE;
 BEGIN
-  -- Busca o lead remarketing
-  SELECT * INTO v_remarketing FROM remarketing_leads WHERE id = p_remarketing_id;
-
-  IF v_remarketing IS NULL THEN
-    RAISE EXCEPTION 'Lead de remarketing não encontrado';
-  END IF;
-
-  IF v_remarketing.transferido_at IS NOT NULL THEN
+  IF EXISTS (SELECT 1 FROM remarketing_leads WHERE id = p_remarketing_id AND transferido_at IS NOT NULL) THEN
     RAISE EXCEPTION 'Lead já foi transferido para o funil';
   END IF;
 
-  -- Insere na tabela principal de leads
-  -- Nota: canal_origem foi criado pela migração de outbound
+  -- Insere na tabela principal listando direto do SELECT para evitar bug do ROWTYPE v_remarketing
   INSERT INTO leads (
     nome, whatsapp, cidade_estado, email, instagram,
     nome_empresa, status_sdr, owner_sdr_id, fonte, canal_origem, created_at
-  ) VALUES (
-    v_remarketing.nome, v_remarketing.whatsapp, v_remarketing.cidade_estado,
-    v_remarketing.email, v_remarketing.instagram, v_remarketing.nome_empresa,
-    'MEUS_LEADS', p_sdr_id, p_fonte, 'remarketing', now()
-  ) RETURNING id INTO v_lead_id;
+  ) 
+  SELECT 
+    nome, whatsapp, cidade_estado, email, instagram,
+    nome_empresa, 'MEUS_LEADS', p_sdr_id, p_fonte, 'remarketing', now()
+  FROM remarketing_leads WHERE id = p_remarketing_id
+  RETURNING id INTO v_lead_id;
 
   -- Marca o remarketing como transferido
   UPDATE remarketing_leads
@@ -99,30 +89,21 @@ BEGIN
 
   RETURN v_lead_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$function$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 6. Função para reverter transferência
 CREATE OR REPLACE FUNCTION revert_remarketing_from_sdr(
   p_lead_id BIGINT
-) RETURNS VOID AS $$
-DECLARE
-  v_remarketing_id BIGINT;
+) RETURNS VOID AS $function$
 BEGIN
-  -- Busca o remarketing original
-  SELECT id INTO v_remarketing_id
-  FROM remarketing_leads
-  WHERE lead_id_principal = p_lead_id;
-
-  IF v_remarketing_id IS NULL THEN
+  IF NOT EXISTS (SELECT 1 FROM remarketing_leads WHERE lead_id_principal = p_lead_id) THEN
     RAISE EXCEPTION 'Link com remarketing não encontrado para este lead';
   END IF;
 
-  -- Remove o link do remarketing
   UPDATE remarketing_leads
   SET transferido_at = NULL, lead_id_principal = NULL, status_remarketing = 'PROSPECTADO'
-  WHERE id = v_remarketing_id;
+  WHERE lead_id_principal = p_lead_id;
 
-  -- Deleta o lead do funil principal
   DELETE FROM leads WHERE id = p_lead_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$function$ LANGUAGE plpgsql SECURITY DEFINER;

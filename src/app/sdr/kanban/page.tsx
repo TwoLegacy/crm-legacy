@@ -110,6 +110,10 @@ export default function SdrKanbanPage() {
       if (lead?.canal_origem === 'outbound') {
         // Lead outbound: reverte a transferência (volta pra lista de prospecção)
         await revertTransferFromFunnel(leadId)
+      } else if (lead?.canal_origem === 'remarketing') {
+        import('@/lib/remarketing').then(async (m) => {
+          await m.revertTransferFromFunnel(leadId)
+        })
       } else {
         // Lead inbound: devolve para fila geral
         await unassignLead(leadId)

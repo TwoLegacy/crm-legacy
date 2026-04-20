@@ -4,7 +4,7 @@ import { createClient } from './supabaseClient'
 // TIPOS
 // =====================================================
 
-export type StatusRemarketing = 'PARA_PROSPECTAR' | 'PROSPECTADO'
+export type StatusRemarketing = 'PARA_PROSPECTAR' | 'PROSPECTADO' | 'RESPONDEU' | 'RECUPERADO'
 export type FonteRemarketing = 'google_maps' | 'indicacao' | 'linkedin' | 'outros'
 
 export interface RemarketingLead {
@@ -152,27 +152,92 @@ export async function undoProspected(remarketingId: number): Promise<Remarketing
   return data
 }
 
-export async function transferToFunnel(
+export async function checkLeadExistsInCRM(whatsapp: string, existingLeadIdPrincipal: number | null): Promise<{
+  exists: boolean;
+  lead: any | null;
+}> {
+  const supabase = createClient()
+  
+  if (existingLeadIdPrincipal) {
+    const { data } = await supabase.from('leads').select('*, profiles!leads_owner_sdr_id_fkey(*)').eq('id', existingLeadIdPrincipal).single();
+    if (data) return { exists: true, lead: data };
+  }
+
+  if (!whatsapp) return { exists: false, lead: null };
+
+  const numbersOnly = whatsapp.replace(/\D/g, '');
+  if (numbersOnly.length < 8) return { exists: false, lead: null };
+
+  const { data } = await supabase.from('leads').select('*, profiles!leads_owner_sdr_id_fkey(*)').ilike('whatsapp', `%${numbersOnly}%`).limit(1);
+  if (data && data.length > 0) {
+    return { exists: true, lead: data[0] };
+  }
+  
+  return { exists: false, lead: null };
+}
+
+export async function reactivateLead(
   remarketingId: number,
-  sdrId: string,
-  tipoLead: 'assessoria' | 'ia' = 'assessoria'
+  leadId: number,
+  newSdrId: string,
+  targetStatus: string,
+  closerId: string | null = null
 ): Promise<number> {
   const supabase = createClient()
 
   const { data, error } = await supabase
-    .rpc('transfer_remarketing_to_sdr', {
+    .rpc('reactivate_lead_from_remarketing', {
       p_remarketing_id: remarketingId,
-      p_sdr_id: sdrId,
-      p_fonte: tipoLead === 'ia' ? 'ia' : 'remarketing',
+      p_lead_id: leadId,
+      p_new_sdr_id: newSdrId,
+      p_target_status: targetStatus,
+      p_closer_id: closerId || null,
     })
 
   if (error) {
-    console.error('Erro ao transferir para funil:', error)
+    console.error('Erro ao reativar lead:', error)
     throw error
   }
 
   invalidateRemarketingCache()
   return data as number
+}
+
+export async function transferToFunnel(
+  remarketingId: number,
+  sdrId: string,
+  tipoLead: 'assessoria' | 'ia' = 'assessoria',
+  targetStatus: string = 'MEUS_LEADS',
+  closerId: string | null = null
+): Promise<number> {
+  const supabase = createClient()
+
+  const { data, error } = await supabase
+    .rpc('transfer_remarketing_to_funil_v2', {
+      p_remarketing_id: remarketingId,
+      p_sdr_id: sdrId,
+      p_target_status: targetStatus,
+      p_closer_id: closerId || null,
+      p_fonte: tipoLead === 'ia' ? 'ia' : 'remarketing',
+    })
+
+  if (error) {
+    console.error('Erro ao transferir para funil v2:', error)
+    throw error
+  }
+
+  invalidateRemarketingCache()
+  return data as number
+}
+
+export async function deleteRemarketingLead(id: number): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase.rpc('delete_remarketing_lead', { p_id: id })
+  if (error) {
+    console.error('Erro ao deletar lead do remarketing:', error)
+    throw error
+  }
+  invalidateRemarketingCache()
 }
 
 export async function createRemarketingLead(

@@ -31,7 +31,7 @@ export interface Lead {
   status_sdr: 'MEUS_LEADS' | 'PROSPECTADOS' | 'QUALIFICACAO' | 'PERTO_REUNIAO' | 'ENCAMINHADO_REUNIAO' | 'VENDEU' | 'LEAD_PERDIDO' | 'NAO_RESPONDEU' | 'NO_SHOW' | null
   status_closer: 'REUNIAO_MARCADA' | 'NO_SHOW' | 'ACOMPANHAMENTO' | 'FECHAMENTO' | 'GANHOU' | 'PERDEU' | null
   fonte: 'quiz' | 'comunidade' | 'site' | 'vsl' | 'ia' | 'outbound' | 'assessoria' | null
-  canal_origem: 'inbound' | 'outbound' | null
+  canal_origem: 'inbound' | 'outbound' | 'remarketing' | null
   origem: string | null
   qtd_contatos: string | null
   prioridade: string | null
